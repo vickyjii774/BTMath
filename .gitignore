@@ -10,7 +10,7 @@ db.sqlite3
 
 # Node
 node_modules/
-.next/
+
 out/
 
 # VS Code
