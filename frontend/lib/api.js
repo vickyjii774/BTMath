@@ -1,94 +1,68 @@
 const API_URL = "http://127.0.0.1:8000/api";
 
-async function fetchAPI(endpoint) {
-  const response = await fetch(`${API_URL}/${endpoint}/`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${endpoint}`);
-  }
-
-  return response.json();
-}
-
-
-// Categories
 export async function getCategories() {
-  return fetchAPI("categories");
+  const response = await fetch(`${API_URL}/categories/`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch categories");
+  }
+
+  return response.json();
 }
 
-
-// Programs
 export async function getPrograms() {
-  return fetchAPI("programs");
-}
-
-
-// Courses
-export async function getCourses() {
-  return fetchAPI("courses");
-}
-
-
-// Semesters
-export async function getSemesters() {
-  return fetchAPI("semesters");
-}
-
-
-// Chapters
-export async function getChapters() {
-  return fetchAPI("chapters");
-}
-
-
-// Materials
-export async function getMaterials() {
-  return fetchAPI("materials");
-}
-
-
-// Single Program
-export async function getProgram(id) {
-  const response = await fetch(`${API_URL}/programs/${id}/`);
+  const response = await fetch(`${API_URL}/programs/`);
 
   if (!response.ok) {
-    throw new Error("Program not found");
+    throw new Error("Failed to fetch programs");
   }
 
   return response.json();
 }
 
-
-// Single Course
-export async function getCourse(id) {
-  const response = await fetch(`${API_URL}/courses/${id}/`);
+export async function getBachelorPrograms() {
+  const response = await fetch(`${API_URL}/bachelor/`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
-    throw new Error("Course not found");
+    throw new Error("Failed to fetch bachelor programs");
   }
 
   return response.json();
 }
 
-
-// Single Semester
-export async function getSemester(id) {
-  const response = await fetch(`${API_URL}/semesters/${id}/`);
+export async function getPlusTwoPrograms() {
+  const response = await fetch(`${API_URL}/plus-two/`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
-    throw new Error("Semester not found");
+    throw new Error("Failed to fetch +2 programs");
   }
 
   return response.json();
 }
 
-
-// Single Chapter
-export async function getChapter(id) {
-  const response = await fetch(`${API_URL}/chapters/${id}/`);
+export async function getMasterPrograms() {
+  const response = await fetch(`${API_URL}/master/`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
-    throw new Error("Chapter not found");
+    throw new Error("Failed to fetch master programs");
+  }
+
+  return response.json();
+}
+
+export async function getIOEPrograms() {
+  const response = await fetch(`${API_URL}/ioe/`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch IOE programs");
   }
 
   return response.json();

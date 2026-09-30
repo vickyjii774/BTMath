@@ -1,19 +1,13 @@
+
 from django.contrib import admin
-from .models import (
-    Category,
-    Program,
-    Course,
-    Semester,
-    Chapter,
-    Material,
-)
+from .models import Category, Program, Semester, Course, Chapter, Material
 
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "level", "created_at")
-    search_fields = ("name",)
     list_filter = ("level",)
+    search_fields = ("name",)
 
 
 @admin.register(Program)
@@ -23,65 +17,73 @@ class ProgramAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
+@admin.register(Semester)
+class SemesterAdmin(admin.ModelAdmin):
+    list_display = ("name", "program", "order")
+    list_filter = ("program",)
+    search_fields = ("name", "program__name")
+    ordering = ("program", "order")
+
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = (
         "title",
+        "semester",
         "program",
-        "category",
-        "price",
         "is_published",
         "created_at",
     )
-
-    list_filter = (
-        "category",
-        "program",
-        "is_published",
-    )
-
+    list_filter = ("is_published", "semester__program__category")
     search_fields = (
         "title",
         "description",
+        "semester__name",
+        "semester__program__name",
     )
-
-    prepopulated_fields = {
-        "slug": ("title",)
-    }
-
-
-@admin.register(Semester)
-class SemesterAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "course",
-        "order",
-    )
-
-    list_filter = ("course",)
-    ordering = ("course", "order")
+    prepopulated_fields = {"slug": ("title",)}
 
 
 @admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin):
-    list_display = (
+    list_display = ("title", "course", "program", "order")
+    list_filter = ("course", "program")
+    search_fields = (
         "title",
-        "semester",
-        "order",
+        "course__title",
     )
+    ordering = ("course", "order")
 
-    list_filter = ("semester",)
-    ordering = ("semester", "order")
+
+from django.contrib import admin
+from .models import (
+    Category,
+    Program,
+    Semester,
+    Course,
+    Chapter,
+    Material,
+)
 
 
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
     list_display = (
         "title",
-        "chapter",
         "material_type",
+        "course",
+        "chapter",
         "created_at",
     )
 
-    list_filter = ("material_type",)
-    search_fields = ("title",)
+    list_filter = (
+        "material_type",
+        "course",
+        "chapter",
+    )
+
+    search_fields = (
+        "title",
+        "description",
+    )
+    

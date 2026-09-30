@@ -11,21 +11,17 @@ class Category(models.Model):
     ]
 
     name = models.CharField(max_length=100)
-
     level = models.CharField(
         max_length=20,
         choices=LEVEL_CHOICES,
         unique=True
     )
-
     description = models.TextField(blank=True)
-
     image = models.ImageField(
         upload_to="categories/",
         blank=True,
         null=True
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -41,16 +37,43 @@ class Program(models.Model):
         on_delete=models.CASCADE,
         related_name="programs"
     )
-
     name = models.CharField(max_length=100)
-
     description = models.TextField(blank=True)
 
     def __str__(self):
         return f"{self.category.name} - {self.name}"
 
 
+class Semester(models.Model):
+    program = models.ForeignKey(
+        Program,
+        on_delete=models.CASCADE,
+        related_name="semesters",
+        null=True,
+        blank=True
+    )
+    name = models.CharField(max_length=100)
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["order"]
+        unique_together = ["program", "name"]
+
+    def __str__(self):
+        if self.program:
+            return f"{self.program.name} - {self.name}"
+        return self.name
+
+
 class Course(models.Model):
+    semester = models.ForeignKey(
+        Semester,
+        on_delete=models.CASCADE,
+        related_name="courses",
+        null=True,
+        blank=True
+    )
+
     program = models.ForeignKey(
         Program,
         on_delete=models.CASCADE,
@@ -59,17 +82,9 @@ class Course(models.Model):
         blank=True
     )
 
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.CASCADE,
-        related_name="courses"
-    )
-
     title = models.CharField(max_length=200)
-
     slug = models.SlugField(unique=True)
-
-    description = models.TextField()
+    description = models.TextField(blank=True)
 
     price = models.DecimalField(
         max_digits=10,
@@ -86,7 +101,6 @@ class Course(models.Model):
     is_published = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -102,43 +116,47 @@ class Course(models.Model):
         )
 
 
-class Semester(models.Model):
+class Chapter(models.Model):
+    # Used for normal courses such as BCA Mathematics
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE,
-        related_name="semesters"
+        related_name="chapters",
+        null=True,
+        blank=True
     )
 
-    name = models.CharField(max_length=100)
-
-    order = models.PositiveIntegerField(default=1)
-
-    def __str__(self):
-        return f"{self.course.title} - {self.name}"
-
-    class Meta:
-        ordering = ["order"]
-
-
-class Chapter(models.Model):
-    semester = models.ForeignKey(
-        Semester,
+    program = models.ForeignKey(
+        Program,
         on_delete=models.CASCADE,
-        related_name="chapters"
+        related_name="chapters",
+        null=True,
+        blank=True
     )
 
     title = models.CharField(max_length=200)
-
     description = models.TextField(blank=True)
-
     order = models.PositiveIntegerField(default=1)
-
-    def __str__(self):
-        return f"{self.semester.name} - {self.title}"
 
     class Meta:
         ordering = ["order"]
 
+    def __str__(self):
+        if self.course:
+            return f"{self.course.title} - {self.title}"
+
+        if self.program:
+            return f"{self.program.name} - {self.title}"
+
+        return self.title
+    
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        if self.course:
+            return f"{self.course.title} - {self.title}"
+        return self.title
 
 class Material(models.Model):
     MATERIAL_TYPES = [
@@ -146,12 +164,24 @@ class Material(models.Model):
         ("video", "Video"),
         ("note", "Note"),
         ("question", "Question Paper"),
+        ("trick", "Short Trick"),
     ]
 
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="materials",
+        null=True,
+        blank=True
+    )
+
+    # Optional: material can belong to a chapter
     chapter = models.ForeignKey(
         Chapter,
         on_delete=models.CASCADE,
-        related_name="materials"
+        related_name="materials",
+        null=True,
+        blank=True
     )
 
     title = models.CharField(max_length=200)
@@ -176,3 +206,4 @@ class Material(models.Model):
 
     def __str__(self):
         return self.title
+

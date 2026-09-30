@@ -1,52 +1,41 @@
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
 from .views import (
-    CategoryViewSet,
-    ProgramViewSet,
-    CourseViewSet,
-    SemesterViewSet,
-    ChapterViewSet,
-    MaterialViewSet,
+    CategoriesAPIView,
+    BachelorProgramAPIView,
+    PlusTwoProgramAPIView,
+    MasterProgramAPIView,
+    IOEProgramAPIView,
 )
 
+urlpatterns = [
+    path(
+        "categories/",
+        CategoriesAPIView.as_view(),
+        name="categories-api",
+    ),
 
-router = DefaultRouter()
+    path(
+        "bachelor/",
+        BachelorProgramAPIView.as_view(),
+        name="bachelor-api",
+    ),
 
-router.register(
-    "categories",
-    CategoryViewSet,
-    basename="category"
-)
+    path(
+        "plus-two/",
+        PlusTwoProgramAPIView.as_view(),
+        name="plus-two-api",
+    ),
+    path(
+    "master/",
+    MasterProgramAPIView.as_view(),
+    name="master-api",
+    ),
 
-router.register(
-    "programs",
-    ProgramViewSet,
-    basename="program"
-)
+    path(
+        "ioe/",
+        IOEProgramAPIView.as_view(),
+        name="ioe-api",
 
-router.register(
-    "courses",
-    CourseViewSet,
-    basename="course"
-)
-
-router.register(
-    "semesters",
-    SemesterViewSet,
-    basename="semester"
-)
-
-router.register(
-    "chapters",
-    ChapterViewSet,
-    basename="chapter"
-)
-
-router.register(
-    "materials",
-    MaterialViewSet,
-    basename="material"
-)
-
-
-urlpatterns = router.urls
+    )
+]

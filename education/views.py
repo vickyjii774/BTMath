@@ -1,49 +1,108 @@
-from rest_framework import viewsets
-
-from .models import (
-    Category,
-    Program,
-    Course,
-    Semester,
-    Chapter,
-    Material,
-)
-
-from .serializers import (
-    CategorySerializer,
-    ProgramSerializer,
-    CourseSerializer,
-    SemesterSerializer,
-    ChapterSerializer,
-    MaterialSerializer,
-)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Category, Program
+from .serializers import ProgramSerializer
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+class CategoriesAPIView(APIView):
+
+    def get(self, request):
+        categories = Category.objects.all().order_by("id")
+
+        data = []
+
+        for category in categories:
+            data.append({
+                "id": category.id,
+                "name": category.name,
+                "level": category.level,
+                "description": category.description,
+            })
+
+        return Response(data)
+
+class BachelorProgramAPIView(APIView):
+
+    def get(self, request):
+        programs = (
+            Program.objects
+            .filter(category__level="bachelor")
+            .prefetch_related("semesters__courses")
+        )
+
+        serializer = ProgramSerializer(programs, many=True)
+
+        return Response(serializer.data)
 
 
-class ProgramViewSet(viewsets.ModelViewSet):
-    queryset = Program.objects.all()
-    serializer_class = ProgramSerializer
+class PlusTwoProgramAPIView(APIView):
 
+    def get(self, request):
+        programs = (
+            Program.objects
+            .filter(category__level="plus2")
+            .prefetch_related("semesters__courses")
+        )
 
-class CourseViewSet(viewsets.ModelViewSet):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
+        serializer = ProgramSerializer(programs, many=True)
 
+        return Response(serializer.data)
 
-class SemesterViewSet(viewsets.ModelViewSet):
-    queryset = Semester.objects.all()
-    serializer_class = SemesterSerializer
+class MasterProgramAPIView(APIView):
 
+    def get(self, request):
+        programs = (
+            Program.objects
+            .filter(category__level="master")
+            .prefetch_related("semesters__courses")
+        )
 
-class ChapterViewSet(viewsets.ModelViewSet):
-    queryset = Chapter.objects.all()
-    serializer_class = ChapterSerializer
+        serializer = ProgramSerializer(programs, many=True)
 
+        return Response(serializer.data)
 
-class MaterialViewSet(viewsets.ModelViewSet):
-    queryset = Material.objects.all()
-    serializer_class = MaterialSerializer
+class IOEProgramAPIView(APIView):
+
+    def get(self, request):
+        programs = (
+            Program.objects
+            .filter(category__level="ioe")
+            .prefetch_related(
+                "chapters__materials"
+            )
+        )
+
+        data = []
+
+        for program in programs:
+            chapters = []
+
+            for chapter in program.chapters.all():
+                materials = []
+
+                for material in chapter.materials.all():
+                    materials.append({
+                        "id": material.id,
+                        "title": material.title,
+                        "material_type": material.material_type,
+                        "file": material.file.url if material.file else None,
+                        "video_url": material.video_url,
+                        "description": material.description,
+                    })
+
+                chapters.append({
+                    "id": chapter.id,
+                    "title": chapter.title,
+                    "description": chapter.description,
+                    "order": chapter.order,
+                    "materials": materials,
+                })
+
+            data.append({
+                "id": program.id,
+                "name": program.name,
+                "description": program.description,
+                "chapters": chapters,
+            })
+
+        return Response(data)
