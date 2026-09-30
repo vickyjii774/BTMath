@@ -32,6 +32,8 @@ export async function getBachelorPrograms() {
   return response.json();
 }
 
+
+
 export async function getPlusTwoPrograms() {
   const response = await fetch(`${API_URL}/plus-two/`, {
     cache: "no-store",
@@ -67,3 +69,4 @@ export async function getIOEPrograms() {
 
   return response.json();
 }
+
