@@ -1,110 +1,82 @@
+import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { getIOEPrograms } from "../../lib/api";
 
-export default async function IOEPage() {
-  const programs = await getIOEPrograms();
+export default function IOEPage() {
+  const sections = [
+    {
+      id: "past-questions",
+      name: "Past Questions",
+      description: "Practice previous IOE questions and exam papers.",
+    },
+    {
+      id: "short-tricks",
+      name: "Short Tricks",
+      description: "Learn quick methods and tricks for solving problems.",
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
       <Navbar />
 
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <h1 className="text-4xl font-bold">
-          IOE Mathematics
-        </h1>
+      {/* Header */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            IOE
+          </h1>
 
-        <p className="mt-4 text-gray-600">
-          Past questions and short tricks for IOE mathematics preparation.
-        </p>
+          <p className="mt-3 text-gray-500">
+            Choose what you want to study...
+          </p>
+        </div>
+      </section>
 
-        <div className="mt-10 space-y-8">
-          {programs.map((program) => (
-            <div
-              key={program.id}
-              className="rounded-xl bg-white p-6 shadow"
+      {/* Cards */}
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="grid gap-6 sm:grid-cols-2">
+
+          {sections.map((section, index) => (
+            <Link
+              key={section.id}
+              href={`/ioe/${section.id}`}
+              className="group"
             >
-              <h2 className="text-2xl font-bold">
-                {program.name}
-              </h2>
+              <div className="min-h-[220px] rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-black hover:shadow-lg">
 
-              {program.description && (
-                <p className="mt-2 text-gray-600">
-                  {program.description}
+                {/* Number + Arrow */}
+                <div className="flex items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-bold text-white">
+                    {index + 1}
+                  </span>
+
+                  <span className="text-2xl text-gray-400 transition duration-300 group-hover:translate-x-2 group-hover:text-black">
+                    →
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2 className="mt-10 text-2xl font-bold">
+                  {section.name}
+                </h2>
+
+                {/* Description */}
+                <p className="mt-2 text-gray-500">
+                  {section.description}
                 </p>
-              )}
 
-              <div className="mt-8 grid gap-6 md:grid-cols-2">
-                {program.chapters.map((chapter) => (
-                  <div
-                    key={chapter.id}
-                    className="rounded-xl border p-6"
-                  >
-                    <h3 className="text-xl font-bold">
-                      {chapter.title}
-                    </h3>
+                {/* Bottom */}
+                <div className="mt-8 border-t border-gray-200 pt-4">
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-black">
+                    Explore
+                  </span>
+                </div>
 
-                    {chapter.description && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        {chapter.description}
-                      </p>
-                    )}
-
-                    <div className="mt-5 space-y-3">
-                      {chapter.materials.length > 0 ? (
-                        chapter.materials.map((material) => (
-                          <div
-                            key={material.id}
-                            className="rounded-lg bg-gray-50 p-4"
-                          >
-                            <h4 className="font-semibold">
-                              {material.title}
-                            </h4>
-
-                            <p className="mt-1 text-sm text-gray-500">
-                              {material.material_type}
-                            </p>
-
-                            {material.description && (
-                              <p className="mt-2 text-sm text-gray-600">
-                                {material.description}
-                              </p>
-                            )}
-
-                            {material.file && (
-                              <a
-                                href={`http://127.0.0.1:8000${material.file}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-3 inline-block font-medium underline"
-                              >
-                                Open PDF →
-                              </a>
-                            )}
-
-                            {material.video_url && (
-                              <a
-                                href={material.video_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-3 ml-4 inline-block font-medium underline"
-                              >
-                                Watch Video →
-                              </a>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-400">
-                          No materials available yet.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
-            </div>
+            </Link>
           ))}
+
         </div>
       </section>
 

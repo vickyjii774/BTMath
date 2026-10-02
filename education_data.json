@@ -1,0 +1,267 @@
+[
+{
+  "model": "education.category",
+  "pk": 1,
+  "fields": {
+    "name": "+2",
+    "level": "plus2",
+    "description": "+2",
+    "image": "",
+    "created_at": "2026-09-28T07:43:42.293Z"
+  }
+},
+{
+  "model": "education.category",
+  "pk": 2,
+  "fields": {
+    "name": "Bachelor",
+    "level": "bachelor",
+    "description": "BAchelor",
+    "image": "",
+    "created_at": "2026-09-28T07:43:59.322Z"
+  }
+},
+{
+  "model": "education.category",
+  "pk": 3,
+  "fields": {
+    "name": "Master",
+    "level": "master",
+    "description": "Master",
+    "image": "",
+    "created_at": "2026-09-28T07:44:21.963Z"
+  }
+},
+{
+  "model": "education.category",
+  "pk": 4,
+  "fields": {
+    "name": "IOE",
+    "level": "ioe",
+    "description": "Ioe",
+    "image": "",
+    "created_at": "2026-09-28T07:44:36.337Z"
+  }
+},
+{
+  "model": "education.program",
+  "pk": 1,
+  "fields": {
+    "category": 2,
+    "name": "BCA",
+    "description": ""
+  }
+},
+{
+  "model": "education.program",
+  "pk": 2,
+  "fields": {
+    "category": 1,
+    "name": "Class 11",
+    "description": "Class 11"
+  }
+},
+{
+  "model": "education.program",
+  "pk": 3,
+  "fields": {
+    "category": 1,
+    "name": "Class 12",
+    "description": "Class 12"
+  }
+},
+{
+  "model": "education.program",
+  "pk": 4,
+  "fields": {
+    "category": 2,
+    "name": "BSC",
+    "description": "BSC"
+  }
+},
+{
+  "model": "education.program",
+  "pk": 5,
+  "fields": {
+    "category": 2,
+    "name": "BIT",
+    "description": ""
+  }
+},
+{
+  "model": "education.program",
+  "pk": 6,
+  "fields": {
+    "category": 2,
+    "name": "BSC CSIT",
+    "description": ""
+  }
+},
+{
+  "model": "education.program",
+  "pk": 7,
+  "fields": {
+    "category": 2,
+    "name": "BITM",
+    "description": "BITM"
+  }
+},
+{
+  "model": "education.program",
+  "pk": 8,
+  "fields": {
+    "category": 4,
+    "name": "IOE",
+    "description": "Mathematics preparation for IOE entrance."
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 3,
+  "fields": {
+    "program": 1,
+    "name": "Semester 1",
+    "order": 1
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 4,
+  "fields": {
+    "program": 1,
+    "name": "Semester 2",
+    "order": 2
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 5,
+  "fields": {
+    "program": 1,
+    "name": "Semester 3",
+    "order": 3
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 6,
+  "fields": {
+    "program": 1,
+    "name": "Semester 4",
+    "order": 4
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 7,
+  "fields": {
+    "program": 1,
+    "name": "Semester 5",
+    "order": 5
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 8,
+  "fields": {
+    "program": 1,
+    "name": "Semester 6",
+    "order": 6
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 9,
+  "fields": {
+    "program": 1,
+    "name": "Semester 7",
+    "order": 7
+  }
+},
+{
+  "model": "education.semester",
+  "pk": 10,
+  "fields": {
+    "program": 1,
+    "name": "Semester 8",
+    "order": 8
+  }
+},
+{
+  "model": "education.course",
+  "pk": 1,
+  "fields": {
+    "semester": 3,
+    "program": 1,
+    "title": "Mathematics",
+    "slug": "Mathematics",
+    "description": "Mathematics course for BCA Semester 1.",
+    "price": "250.00",
+    "thumbnail": "",
+    "is_published": true,
+    "created_at": "2026-09-28T07:46:56.499Z",
+    "updated_at": "2026-09-29T14:42:16.233Z"
+  }
+},
+{
+  "model": "education.chapter",
+  "pk": 1,
+  "fields": {
+    "course": null,
+    "program": null,
+    "title": "Matrix",
+    "description": "Matrix",
+    "order": 1
+  }
+},
+{
+  "model": "education.chapter",
+  "pk": 2,
+  "fields": {
+    "course": null,
+    "program": 8,
+    "title": "Past Questions",
+    "description": "Previous IOE mathematics questions.",
+    "order": 1
+  }
+},
+{
+  "model": "education.chapter",
+  "pk": 3,
+  "fields": {
+    "course": null,
+    "program": 8,
+    "title": "Short Tricks",
+    "description": "Useful mathematics tricks for IOE preparation.",
+    "order": 2
+  }
+},
+{
+  "model": "education.material",
+  "pk": 1,
+  "fields": {
+    "course": null,
+    "chapter": 2,
+    "title": "IOE 2080 Mathematics Question",
+    "material_type": "pdf",
+    "file": "",
+    "video_url": "https://www.youtube.com/watch?v=SQ4jZ-EAL88&list=RDSQ4jZ-EAL88&start_radio=1",
+    "description": "Important integration shortcuts.",
+    "created_at": "2026-09-30T04:33:38.648Z"
+  }
+},
+{
+  "model": "education.material",
+  "pk": 2,
+  "fields": {
+    "course": null,
+    "chapter": 3,
+    "title": "Integration Short Tricks",
+    "material_type": "pdf",
+    "file": "materials/NELD_Research_Proposal_Proper_Academic_Proposal.docx",
+    "video_url": "",
+    "description": "Integration Short Tricks",
+    "created_at": "2026-09-30T04:34:20.260Z"
+  }
+}
+]

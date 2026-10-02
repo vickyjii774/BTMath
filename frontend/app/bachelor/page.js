@@ -1,86 +1,85 @@
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { getBachelorPrograms } from "../../lib/api";
+import Link from "next/link";
 
 export default async function BachelorPage() {
   const programs = await getBachelorPrograms();
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
+
       <Navbar />
 
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <h1 className="text-4xl font-bold">
-          Bachelor Mathematics
-        </h1>
+      {/* Header */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-16">
 
-        <p className="mt-4 text-gray-600">
-          Mathematics resources for Bachelor programs.
-        </p>
+          <h1 className="text-4xl font-bold">
+            Bachelor Mathematics
+          </h1>
 
-        <div className="mt-10 space-y-8">
-          {programs.map((program) => (
-            <div
-              key={program.id}
-              className="rounded-xl bg-white p-6 shadow"
-            >
-              <h2 className="text-2xl font-bold">
-                {program.name}
-              </h2>
+          <p className="mt-3 text-gray-500">
+            Choose your bachelor program...
+          </p>
 
-              {program.description && (
-                <p className="mt-2 text-gray-600">
-                  {program.description}
-                </p>
-              )}
-
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold">
-                  Semesters
-                </h3>
-
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {program.semesters.map((semester) => (
-                    <div
-                      key={semester.id}
-                      className="rounded-lg border bg-gray-50 p-4"
-                    >
-                      <h4 className="font-semibold">
-                        {semester.name}
-                      </h4>
-
-                      {semester.courses.length > 0 ? (
-                        <div className="mt-3 space-y-2">
-                          {semester.courses.map((course) => (
-                            <div
-                              key={course.id}
-                              className="rounded-md bg-white p-3 shadow-sm"
-                            >
-                              <p className="font-medium">
-                                {course.title}
-                              </p>
-
-                              <p className="mt-1 text-sm text-gray-500">
-                                Rs. {course.price}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-sm text-gray-400">
-                          No courses available
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
+      {/* Programs */}
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+
+          {programs.slice(0, 5).map((program, index) => (
+
+            <Link
+              key={program.id}
+              href={`/bachelor/${program.id}`}
+              className="group"
+            >
+
+              <div className="min-h-[220px] rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-black hover:shadow-lg">
+
+                {/* Number + Arrow */}
+                <div className="flex items-center justify-between">
+
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-bold text-white">
+                    {index + 1}
+                  </span>
+
+                  <span className="text-2xl text-gray-400 transition duration-300 group-hover:translate-x-2 group-hover:text-black">
+                    →
+                  </span>
+
+                </div>
+
+                {/* Program Name */}
+                <h2 className="mt-10 text-2xl font-bold">
+                  {program.name}
+                </h2>
+
+                {/* Explore */}
+                <div className="mt-8 border-t border-gray-200 pt-4">
+
+                  <span className="text-sm font-medium text-gray-500 transition group-hover:text-black">
+                    Explore Program
+                  </span>
+
+                </div>
+
+              </div>
+
+            </Link>
+
+          ))}
+
+        </div>
+
+      </section>
+
       <Footer />
+
     </main>
   );
 }
