@@ -443,65 +443,300 @@ __turbopack_context__.s([
     ()=>getBachelorPrograms,
     "getCategories",
     ()=>getCategories,
+    "getCounters",
+    ()=>getCounters,
+    "getCourseDetail",
+    ()=>getCourseDetail,
+    "getCourses",
+    ()=>getCourses,
+    "getFormulas",
+    ()=>getFormulas,
     "getIOEPrograms",
     ()=>getIOEPrograms,
+    "getMCQs",
+    ()=>getMCQs,
     "getMasterPrograms",
     ()=>getMasterPrograms,
+    "getMe",
+    ()=>getMe,
+    "getMockTestDetail",
+    ()=>getMockTestDetail,
+    "getMockTests",
+    ()=>getMockTests,
+    "getPastQuestions",
+    ()=>getPastQuestions,
     "getPlusTwoPrograms",
     ()=>getPlusTwoPrograms,
-    "getPrograms",
-    ()=>getPrograms
+    "getProgramDetail",
+    ()=>getProgramDetail,
+    "getQuestionBank",
+    ()=>getQuestionBank,
+    "getStudentDashboard",
+    ()=>getStudentDashboard,
+    "getUserPayments",
+    ()=>getUserPayments,
+    "loginUser",
+    ()=>loginUser,
+    "registerUser",
+    ()=>registerUser,
+    "submitMockTest",
+    ()=>submitMockTest,
+    "submitPayment",
+    ()=>submitPayment,
+    "toggleMaterialProgress",
+    ()=>toggleMaterialProgress,
+    "updateProfile",
+    ()=>updateProfile
 ]);
-const API_URL = "http://127.0.0.1:8000/api";
-async function getCategories() {
-    const response = await fetch(`${API_URL}/categories/`);
-    if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-    }
-    return response.json();
+const API_URL = ("TURBOPACK compile-time value", "http://127.0.0.1:8000/api") || "http://127.0.0.1:8000/api";
+function getAuthToken() {
+    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+    ;
+    return null;
 }
-async function getPrograms() {
-    const response = await fetch(`${API_URL}/programs/`);
-    if (!response.ok) {
-        throw new Error("Failed to fetch programs");
+function getAuthHeaders(isJson = true) {
+    const headers = {};
+    if (isJson) {
+        headers["Content-Type"] = "application/json";
     }
-    return response.json();
+    const token = getAuthToken();
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+}
+async function getCategories() {
+    const res = await fetch(`${API_URL}/categories/`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
 }
 async function getBachelorPrograms() {
-    const response = await fetch(`${API_URL}/bachelor/`, {
+    const res = await fetch(`${API_URL}/bachelor/`, {
         cache: "no-store"
     });
-    if (!response.ok) {
-        throw new Error("Failed to fetch bachelor programs");
-    }
-    return response.json();
+    if (!res.ok) return [];
+    return res.json();
 }
 async function getPlusTwoPrograms() {
-    const response = await fetch(`${API_URL}/plus-two/`, {
+    const res = await fetch(`${API_URL}/plus-two/`, {
         cache: "no-store"
     });
-    if (!response.ok) {
-        throw new Error("Failed to fetch +2 programs");
-    }
-    return response.json();
+    if (!res.ok) return [];
+    return res.json();
 }
 async function getMasterPrograms() {
-    const response = await fetch(`${API_URL}/master/`, {
+    const res = await fetch(`${API_URL}/master/`, {
         cache: "no-store"
     });
-    if (!response.ok) {
-        throw new Error("Failed to fetch master programs");
-    }
-    return response.json();
+    if (!res.ok) return [];
+    return res.json();
 }
 async function getIOEPrograms() {
-    const response = await fetch(`${API_URL}/ioe/`, {
+    const res = await fetch(`${API_URL}/ioe/`, {
         cache: "no-store"
     });
-    if (!response.ok) {
-        throw new Error("Failed to fetch IOE programs");
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getProgramDetail(slugOrId) {
+    const res = await fetch(`${API_URL}/programs/${slugOrId}/`, {
+        cache: "no-store"
+    });
+    if (!res.ok) throw new Error("Failed to load program");
+    return res.json();
+}
+async function getCourses(params = {}) {
+    const query = new URLSearchParams();
+    if (params.level) query.append("level", params.level);
+    if (params.program) query.append("program", params.program);
+    if (params.search) query.append("search", params.search);
+    const res = await fetch(`${API_URL}/courses/?${query.toString()}`, {
+        cache: "no-store",
+        headers: getAuthHeaders(false)
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getCourseDetail(slug) {
+    const res = await fetch(`${API_URL}/courses/${slug}/`, {
+        cache: "no-store",
+        headers: getAuthHeaders(false)
+    });
+    if (!res.ok) throw new Error("Course not found");
+    return res.json();
+}
+async function toggleMaterialProgress(materialId) {
+    const res = await fetch(`${API_URL}/progress/toggle/${materialId}/`, {
+        method: "POST",
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to update progress");
+    return res.json();
+}
+async function registerUser({ username, email, password, confirm_password, full_name, phone }) {
+    const res = await fetch(`${API_URL}/auth/register/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username,
+            email,
+            password,
+            confirm_password,
+            full_name,
+            phone
+        })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Registration failed");
+    return data;
+}
+async function loginUser(username, password) {
+    const res = await fetch(`${API_URL}/auth/login/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username,
+            password
+        })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Login failed");
+    return data;
+}
+async function getMe() {
+    const res = await fetch(`${API_URL}/auth/me/`, {
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Not authenticated");
+    return res.json();
+}
+async function updateProfile(formData) {
+    const res = await fetch(`${API_URL}/auth/profile/`, {
+        method: "PUT",
+        headers: {
+            Authorization: `Bearer ${getAuthToken()}`
+        },
+        body: formData
+    });
+    if (!res.ok) throw new Error("Failed to update profile");
+    return res.json();
+}
+async function getStudentDashboard() {
+    const res = await fetch(`${API_URL}/dashboard/`, {
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to load dashboard data");
+    return res.json();
+}
+async function submitPayment(formData) {
+    const res = await fetch(`${API_URL}/payments/submit/`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${getAuthToken()}`
+        },
+        body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Payment submission failed");
+    return data;
+}
+async function getUserPayments() {
+    const res = await fetch(`${API_URL}/payments/history/`, {
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getQuestionBank(params = {}) {
+    const query = new URLSearchParams();
+    if (params.difficulty) query.append("difficulty", params.difficulty);
+    if (params.program) query.append("program", params.program);
+    if (params.search) query.append("search", params.search);
+    const res = await fetch(`${API_URL}/questions/?${query.toString()}`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getMCQs(params = {}) {
+    const query = new URLSearchParams();
+    if (params.topic) query.append("topic", params.topic);
+    if (params.difficulty) query.append("difficulty", params.difficulty);
+    if (params.program) query.append("program", params.program);
+    const res = await fetch(`${API_URL}/mcqs/?${query.toString()}`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getMockTests() {
+    const res = await fetch(`${API_URL}/mock-tests/`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getMockTestDetail(slugOrId) {
+    const res = await fetch(`${API_URL}/mock-tests/${slugOrId}/`, {
+        cache: "no-store"
+    });
+    if (!res.ok) throw new Error("Mock test not found");
+    return res.json();
+}
+async function submitMockTest(slugOrId, answers, timeTakenSeconds) {
+    const res = await fetch(`${API_URL}/mock-tests/${slugOrId}/submit/`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+            answers,
+            time_taken_seconds: timeTakenSeconds
+        })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to submit test");
+    return data;
+}
+async function getPastQuestions(params = {}) {
+    const query = new URLSearchParams();
+    if (params.year) query.append("year", params.year);
+    if (params.program) query.append("program", params.program);
+    if (params.solved !== undefined) query.append("solved", params.solved);
+    const res = await fetch(`${API_URL}/past-questions/?${query.toString()}`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getFormulas(params = {}) {
+    const query = new URLSearchParams();
+    if (params.level) query.append("level", params.level);
+    if (params.topic) query.append("topic", params.topic);
+    const res = await fetch(`${API_URL}/formulas/?${query.toString()}`, {
+        cache: "no-store"
+    });
+    if (!res.ok) return [];
+    return res.json();
+}
+async function getCounters() {
+    const res = await fetch(`${API_URL}/statistics/counters/`, {
+        cache: "no-store"
+    });
+    if (!res.ok) {
+        return {
+            total_students: 0,
+            total_courses: 0,
+            total_purchases: 0,
+            total_questions: 0,
+            total_mcqs: 0
+        };
     }
-    return response.json();
+    return res.json();
 }
 }),
 ];
