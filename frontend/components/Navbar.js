@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 "use client";
 
@@ -34,15 +35,29 @@ export default function Navbar() {
     router.push("/");
   }
 
+=======
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+export default function Navbar() {
+  const [open, setOpen] = useState(false);
+
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
         {/* Logo */}
+<<<<<<< HEAD
         <Link
           href="/"
           className="text-xl font-extrabold tracking-tight text-gray-950"
         >
+=======
+        <Link href="/" className="text-2xl font-bold">
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
           BTMath
         </Link>
 
@@ -50,6 +65,7 @@ export default function Navbar() {
         <div className="flex items-center gap-6 text-sm font-medium">
 
           {/* Home */}
+<<<<<<< HEAD
           <Link
             href="/"
             className="transition hover:text-blue-600"
@@ -80,11 +96,40 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                 >
                   +2 Math
+=======
+          <Link href="/" className="hover:text-blue-600">
+            Home
+          </Link>
+
+          {/* Menu Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setOpen(!open)}
+              className="flex w-max items-center gap-1 pr-2 hover:text-blue-600"
+            >
+              Menu
+              <span>{open ? "▲" : "▼"}</span>
+            </button>
+
+            {open && (
+              <div className="absolute right-0 z-50 mt-3 w-44 rounded-lg border bg-white py-2 shadow-lg">
+
+                <Link
+                  href="/plus-two"
+                  className="block px-4 py-4 hover:bg-gray-100"
+                  onClick={() => setOpen(false)}
+                >
+                  +2
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                 </Link>
 
                 <Link
                   href="/bachelor"
+<<<<<<< HEAD
                   className="block px-4 py-3 transition hover:bg-gray-100"
+=======
+                  className="block px-4 py-2 hover:bg-gray-100"
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                   onClick={() => setOpen(false)}
                 >
                   Bachelor
@@ -92,7 +137,11 @@ export default function Navbar() {
 
                 <Link
                   href="/master"
+<<<<<<< HEAD
                   className="block px-4 py-3 transition hover:bg-gray-100"
+=======
+                  className="block px-4 py-2 hover:bg-gray-100"
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                   onClick={() => setOpen(false)}
                 >
                   Master
@@ -100,7 +149,11 @@ export default function Navbar() {
 
                 <Link
                   href="/ioe"
+<<<<<<< HEAD
                   className="block px-4 py-3 transition hover:bg-gray-100"
+=======
+                  className="block px-4 py-2 hover:bg-gray-100"
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                   onClick={() => setOpen(false)}
                 >
                   IOE
@@ -111,6 +164,7 @@ export default function Navbar() {
           </div>
 
           {/* Contact */}
+<<<<<<< HEAD
           <Link
             href="/contact"
             className="transition hover:text-blue-600"
@@ -161,8 +215,18 @@ export default function Navbar() {
               </Link>
             </div>
           )}
+=======
+          <Link href="/contact" className="hover:text-blue-600">
+            Contact
+          </Link>
+
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
         </div>
       </div>
     </nav>
   );
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a

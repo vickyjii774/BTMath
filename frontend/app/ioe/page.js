@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -7,6 +10,7 @@ export default function IOEPage() {
   const sections = [
     {
       id: "past-questions",
+<<<<<<< HEAD
       number: "01",
       name: "Past Questions",
       description:
@@ -20,6 +24,15 @@ export default function IOEPage() {
       description:
         "Master faster calculation methods, shortcuts, and time-saving techniques for competitive entrance exams.",
       label: "Learn Faster",
+=======
+      name: "Past Questions",
+      description: "Practice previous IOE questions and exam papers.",
+    },
+    {
+      id: "short-tricks",
+      name: "Short Tricks",
+      description: "Learn quick methods and tricks for solving problems.",
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
     },
   ];
 
@@ -27,6 +40,7 @@ export default function IOEPage() {
     <main className="min-h-screen bg-gray-50 text-gray-900">
       <Navbar />
 
+<<<<<<< HEAD
       {/* Hero */}
       <section className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
@@ -83,11 +97,32 @@ export default function IOEPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {sections.map((section) => (
+=======
+      {/* Header */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            IOE
+          </h1>
+
+          <p className="mt-3 text-gray-500">
+            Choose what you want to study...
+          </p>
+        </div>
+      </section>
+
+      {/* Cards */}
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="grid gap-6 sm:grid-cols-2">
+
+          {sections.map((section, index) => (
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
             <Link
               key={section.id}
               href={`/ioe/${section.id}`}
               className="group"
             >
+<<<<<<< HEAD
               <article className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl border border-gray-200 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-gray-400 hover:shadow-md sm:p-8">
                 <div>
                   <div className="flex items-center justify-between">
@@ -154,6 +189,42 @@ export default function IOEPage() {
               <span className="ml-2">→</span>
             </Link>
           </div>
+=======
+              <div className="min-h-[220px] rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-black hover:shadow-lg">
+
+                {/* Number + Arrow */}
+                <div className="flex items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-bold text-white">
+                    {index + 1}
+                  </span>
+
+                  <span className="text-2xl text-gray-400 transition duration-300 group-hover:translate-x-2 group-hover:text-black">
+                    →
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2 className="mt-10 text-2xl font-bold">
+                  {section.name}
+                </h2>
+
+                {/* Description */}
+                <p className="mt-2 text-gray-500">
+                  {section.description}
+                </p>
+
+                {/* Bottom */}
+                <div className="mt-8 border-t border-gray-200 pt-4">
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-black">
+                    Explore
+                  </span>
+                </div>
+
+              </div>
+            </Link>
+          ))}
+
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
         </div>
       </section>
 

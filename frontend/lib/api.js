@@ -47,6 +47,7 @@ export async function getMasterPrograms() {
 }
 
 export async function getIOEPrograms() {
+<<<<<<< HEAD
   const res = await fetch(`${API_URL}/ioe/`, { cache: "no-store" });
   if (!res.ok) return [];
   return res.json();
@@ -275,4 +276,15 @@ export async function loginUser(username, password) {
   }
 
   return data;
+=======
+  const response = await fetch(`${API_URL}/ioe/`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch IOE programs");
+  }
+
+  return response.json();
+>>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
 }
