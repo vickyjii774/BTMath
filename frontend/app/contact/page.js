@@ -51,7 +51,7 @@ export default function ContactPage() {
       <Navbar />
 
       {/* ================= MAIN CONTENT ================= */}
-      <main className="min-h-screen">
+      <main className="bg-gray-50">
 
         {/* Hero */}
         <section className="bg-gray-900 px-6 py-20 text-center text-white">

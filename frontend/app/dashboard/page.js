@@ -159,6 +159,159 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        
+{/* Payment / Purchase Requests */}
+<div className="mt-10">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-xl font-bold text-gray-950">
+        My Purchase Requests
+      </h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Track your course payment and enrollment requests.
+      </p>
+    </div>
+
+    <Link
+      href="/courses"
+      className="text-xs font-semibold text-gray-600 hover:text-black"
+    >
+      Browse Courses →
+    </Link>
+  </div>
+
+  {payments?.length > 0 ? (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="divide-y divide-gray-100">
+        {payments.map((payment) => {
+          const status = String(payment.status || "").toLowerCase();
+
+          const statusStyle =
+            status === "approved" || status === "completed"
+              ? "bg-green-50 text-green-700 border-green-200"
+              : status === "rejected" || status === "failed"
+              ? "bg-red-50 text-red-700 border-red-200"
+              : "bg-yellow-50 text-yellow-700 border-yellow-200";
+
+          return (
+            <div
+              key={payment.id}
+              className="p-5 sm:p-6"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                {/* Course Information */}
+                <div className="min-w-0">
+                  <h3 className="font-bold text-gray-900">
+                    {payment.course_title ||
+                      payment.course_name ||
+                      "Course Purchase"}
+                  </h3>
+
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                    {payment.amount !== undefined && (
+                      <span>
+                        Amount:{" "}
+                        <strong className="text-gray-700">
+                          Rs. {Number(payment.amount).toLocaleString()}
+                        </strong>
+                      </span>
+                    )}
+
+                    {payment.payment_method && (
+                      <span>
+                        Method: {payment.payment_method}
+                      </span>
+                    )}
+
+                    {payment.created_at && (
+                      <span>
+                        Submitted:{" "}
+                        {new Date(payment.created_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-bold capitalize ${statusStyle}`}
+                  >
+                    {payment.status || "Pending"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pending Message */}
+              {status === "pending" && (
+                <div className="mt-4 rounded-xl border border-yellow-100 bg-yellow-50 px-4 py-3">
+                  <p className="text-xs font-semibold text-yellow-800">
+                    Payment verification pending
+                  </p>
+
+                  <p className="mt-1 text-xs text-yellow-700">
+                    Your payment has been submitted successfully. Our team
+                    will verify your payment and activate your course after
+                    approval.
+                  </p>
+                </div>
+              )}
+
+              {/* Approved Message */}
+              {(status === "approved" || status === "completed") && (
+                <div className="mt-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3">
+                  <p className="text-xs font-semibold text-green-800">
+                    ✓ Payment approved
+                  </p>
+
+                  <p className="mt-1 text-xs text-green-700">
+                    Your course access has been activated.
+                  </p>
+                </div>
+              )}
+
+              {/* Rejected Message */}
+              {(status === "rejected" || status === "failed") && (
+                <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                  <p className="text-xs font-semibold text-red-800">
+                    Payment request rejected
+                  </p>
+
+                  <p className="mt-1 text-xs text-red-700">
+                    Please check your payment details and submit a new request
+                    if necessary.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : (
+    <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
+      <div className="text-2xl">📋</div>
+
+      <p className="mt-3 text-sm font-semibold text-gray-700">
+        No purchase requests yet
+      </p>
+
+      <p className="mt-1 text-xs text-gray-500">
+        When you purchase a course, your payment request will appear here.
+      </p>
+
+      <Link
+        href="/courses"
+        className="mt-4 inline-block rounded-xl bg-black px-5 py-2.5 text-xs font-bold text-white hover:bg-gray-800"
+      >
+        Explore Courses
+      </Link>
+    </div>
+  )}
+</div>
+
+
 
        
       </section>

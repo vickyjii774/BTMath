@@ -1,6 +1,8 @@
 from django.db import models
+from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.models import User
+
 
 
 class Category(models.Model):
@@ -626,3 +628,40 @@ class LoginLog(models.Model):
         return f"{self.user.username} logged in at {self.logged_at}"
 
 
+
+class CourseAccessPackage(models.Model):
+    name = models.CharField(max_length=200)
+    level = models.CharField(max_length=50, unique=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=499)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
+class UserCourseAccess(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_access"
+    )
+
+    package = models.CharField(
+        max_length=100,
+        default="BTMath Complete Access"
+    )
+
+    is_active = models.BooleanField(default=False)
+
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.package}"
+
+    

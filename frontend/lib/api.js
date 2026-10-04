@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
 function getAuthToken() {
   if (typeof window !== "undefined") {
@@ -112,16 +114,7 @@ export async function registerUser(arg1, maybeEmail, maybePassword) {
   return data;
 }
 
-export async function loginUser(username, password) {
-  const res = await fetch(`${API_URL}/auth/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Login failed");
-  return data;
-}
+
 
 export async function getMe() {
   const res = await fetch(`${API_URL}/auth/me/`, {
@@ -256,4 +249,30 @@ export async function getCounters() {
     };
   }
   return res.json();
-}
+}
+
+
+export async function loginUser(username, password) {
+  const res = await fetch(`${API_URL}/auth/login/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(
+      data.error ||
+      data.detail ||
+      "Login failed"
+    );
+  }
+
+  return data;
+}

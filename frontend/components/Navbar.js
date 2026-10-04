@@ -41,7 +41,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-2xl font-extrabold tracking-tight text-gray-950"
+          className="text-xl font-extrabold tracking-tight text-gray-950"
         >
           BTMath
         </Link>

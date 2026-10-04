@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -9,115 +10,131 @@ export const dynamic = "force-dynamic";
 export default async function BachelorPage() {
   let programs = [];
   let courses = [];
+
   try {
-    const [pData, cData] = await Promise.all([
+    const [programData, courseData] = await Promise.all([
       getBachelorPrograms(),
       getCourses({ level: "bachelor" }),
     ]);
-    programs = pData || [];
-    courses = cData || [];
-  } catch (err) {
-    console.error(err);
+
+    programs = programData || [];
+    courses = courseData || [];
+  } catch (error) {
+    console.error("Failed to load bachelor data:", error);
   }
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
       <Navbar />
 
-      <section className="border-b bg-white py-12 px-6">
-        <div className="mx-auto max-w-7xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 mb-3">
-            <span> University Degree Programs</span>
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight">Bachelor Mathematics</h1>
-          <p className="mt-2 text-sm text-gray-600 max-w-2xl">
-            Syllabus, notes, video lectures, and solved past questions for BSc CSIT, BCA, BSc General, BIT, and Engineering mathematics.
+      {/* Header */}
+      <section className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-14">
+          <p className="mb-3 text-sm font-medium text-gray-500">
+            University Programs
+          </p>
+
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Bachelor Mathematics
+          </h1>
+
+          <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
+            Mathematics resources for bachelor-level students, including
+            courses, notes, lectures, practice questions and past papers.
           </p>
         </div>
       </section>
 
-      {/* Available Bachelor Courses */}
-      {courses.length > 0 && (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-          <h2 className="text-2xl font-bold mb-6">Available Bachelor Courses</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+      {/* Bachelor Programs */}
+      <section className="mx-auto max-w-7xl px-6 py-12">
+        <div className="mb-7">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Bachelor Programs
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Select your program to explore its mathematics curriculum.
+          </p>
+        </div>
+
+        {programs.length > 0 ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {programs.map((program, index) => (
+              <Link
+                key={program.id}
+                href={`/bachelor/${program.id}`}
+                className="group"
+              >
+                <div className="h-full rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-400 hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+                      {index + 1}
+                    </span>
+
+                    <span className="text-lg text-gray-400 transition group-hover:translate-x-1 group-hover:text-gray-700">
+                      →
+                    </span>
+                  </div>
+
+                  <h3 className="mt-8 text-xl font-semibold text-gray-900">
+                    {program.name}
+                  </h3>
+
+                  {program.description && (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-500">
+                      {program.description}
+                    </p>
+                  )}
+
+                  {program.duration_info && (
+                    <p className="mt-4 text-xs font-medium text-gray-500">
+                      {program.duration_info}
+                    </p>
+                  )}
+
+                  <div className="mt-6 border-t border-gray-100 pt-4">
+                    <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900">
+                      Explore program →
+                    </span>
+                  </div>
+                </div>
+              </Link>
             ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+            <p className="text-sm text-gray-500">
+              No bachelor programs are currently available.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Available Courses */}
+      {courses.length > 0 && (
+        <section className="border-t border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl px-6 py-12">
+            <div className="mb-7">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Bachelor Courses
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Browse available mathematics courses.
+              </p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
           </div>
         </section>
       )}
-
-      {/* Program Academic Structures */}
-      <section className="mx-auto max-w-7xl px-6 py-6 pb-16">
-        <h2 className="text-2xl font-bold mb-6">Programs & Academic Structure</h2>
-
-        <div className="space-y-8">
-          {programs.map((program) => {
-            const periods = program.academic_periods?.length > 0
-              ? program.academic_periods
-              : program.semesters || [];
-
-            return (
-              <div key={program.id} className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-950">{program.name}</h3>
-                    {program.description && <p className="mt-1 text-xs text-gray-500">{program.description}</p>}
-                  </div>
-                  {program.duration_info && (
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                      ⏱ {program.duration_info}
-                    </span>
-                  )}
-                </div>
-
-                {/* Periods Grid (Supports flat or nested Year -> Semesters) */}
-                <div className="mt-6">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-4">
-                    Academic Periods / Terms
-                  </h4>
-
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {periods.map((period) => (
-                      <div key={period.id} className="rounded-xl border border-gray-200 bg-gray-50/70 p-4">
-                        <div className="flex items-center justify-between">
-                          <h5 className="font-bold text-sm text-gray-900">{period.name}</h5>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase">
-                            {period.period_type || "Semester"}
-                          </span>
-                        </div>
-
-                        {/* Nested sub-periods if any (e.g. Year 1 has Sem 1 & 2) */}
-                        {period.sub_periods?.length > 0 && (
-                          <div className="mt-3 space-y-1.5 border-t border-gray-200 pt-2">
-                            {period.sub_periods.map((sub) => (
-                              <div key={sub.id} className="rounded bg-white p-2 text-xs font-semibold text-gray-700 shadow-2xs">
-                                ↳ {sub.name}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="mt-4 border-t border-gray-200/60 pt-2">
-                          <Link
-                            href={`/courses?program=${program.id}`}
-                            className="text-xs font-bold text-blue-600 hover:underline"
-                          >
-                            Browse Courses →
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
       <Footer />
     </main>
   );
 }
+

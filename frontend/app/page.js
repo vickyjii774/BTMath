@@ -62,7 +62,7 @@ export default async function Home() {
       </section>
 
       {/* REAL DATABASE COUNTERS SECTION */}
-      <section className="border-y border-gray-200 bg-gray-950 py-12 text-white">
+      <section className="border-y border-gray-200 bg-gray-400 py-12 text-white">
         <div className="mx-auto max-w-7xl px-6">
           <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400">
             Real Live Learning Metrics (Direct from Database)
@@ -83,25 +83,26 @@ export default async function Home() {
               </div>
               <p className="mt-2 text-sm font-medium text-gray-300">Available Courses</p>
             </div>
-
-            {/* Counter 3: Questions */}
+            {/* Counter 3: Purchases */}
             <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 backdrop-blur">
-              <div className="text-4xl font-extrabold text-emerald-400 sm:text-5xl">
-                <AnimatedCounter value={counters.total_questions} />+
+              <div className="text-4xl font-extrabold text-green-400 sm:text-5xl">
+                <AnimatedCounter value={counters.total_purchases} />+
               </div>
-              <p className="mt-2 text-sm font-medium text-gray-300">Questions in Bank</p>
+              <p className="mt-2 text-sm font-medium text-gray-300">Total Purchases</p>
             </div>
-
-            {/* Counter 4: MCQs */}
+            
+            {/* Counter 4: Courses */}      
             <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 backdrop-blur">
-              <div className="text-4xl font-extrabold text-amber-400 sm:text-5xl">
-                <AnimatedCounter value={counters.total_mcqs} />+
+              <div className="text-4xl font-extrabold text-yellow-400 sm:text-5xl">
+                <AnimatedCounter value={counters.total_courses} />+
               </div>
-              <p className="mt-2 text-sm font-medium text-gray-300">Practice MCQs</p>
+              <p className="mt-2 text-sm font-medium text-gray-300">Total Courses</p>
             </div>
           </div>
         </div>
       </section>
+            
+    
 
       {/* Study By Level */}
       <section className="mx-auto max-w-7xl px-6 py-20">
