@@ -11,6 +11,20 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from decimal import Decimal
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from django.contrib.auth.models import User
+
+from .permissions import IsAdminUser
+from .models import (
+    Course,
+    Enrollment,
+    Payment,
+    UserRequest,
+)
+
 from .models import (
     Category,
     Program,
@@ -472,3 +486,330 @@ class CountersAPIView(APIView):
             "registrations_month": registrations_month,
         })
 
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from .permissions import IsAdminUser
+from .models import (
+    UserProfile,
+    Course,
+    Enrollment,
+    Payment,
+    UserRequest,
+)
+
+
+class AdminDashboardView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        return Response({
+            "students": UserProfile.objects.count(),
+            "courses": Course.objects.count(),
+            "pending_requests": UserRequest.objects.filter(
+                status="pending"
+            ).count(),
+            "enrollments": Enrollment.objects.count(),
+            "payments": Payment.objects.count(),
+        })
+
+
+from django.contrib.auth import get_user_model
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from .permissions import IsAdminUser
+
+User = get_user_model()
+
+
+class AdminUsersAPIView(APIView):
+    """
+    Admin API for viewing all registered users.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        users = User.objects.all().order_by("-date_joined")
+
+        data = []
+
+        for user in users:
+            data.append({
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "is_active": user.is_active,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "date_joined": user.date_joined,
+                "last_login": user.last_login,
+            })
+
+        return Response({
+            "count": len(data),
+            "users": data,
+        })
+    
+
+    from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+
+from .permissions import IsAdminUser
+from .models import (
+    UserRequest,
+    Program,
+    Course,
+    Subject,
+    Chapter,
+    Material,
+    Enrollment,
+    Payment,
+)
+
+class AdminResourceAPIView(APIView):
+    """
+    Generic admin CRUD API for BTMath administration.
+
+    Supports:
+        GET    /api/admin/<resource>/
+        POST   /api/admin/<resource>/
+        PUT    /api/admin/<resource>/<pk>/
+        DELETE /api/admin/<resource>/<pk>/
+
+    Only Django staff/superuser accounts can use these endpoints.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    RESOURCE_MODELS = {
+        "requests": UserRequest,
+        "programs": Program,
+        "courses": Course,
+        "subjects": Subject,
+        "chapters": Chapter,
+        "materials": Material,
+        "enrollments": Enrollment,
+        "payments": Payment,
+    }
+
+    def get_model(self, resource):
+        return self.RESOURCE_MODELS.get(resource)
+
+    def serialize_value(self, value):
+        """
+        Convert Django/model values into JSON-safe values.
+        """
+
+        if value is None:
+            return None
+
+        # Date/time values
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except Exception:
+                pass
+
+        # Decimal
+        from decimal import Decimal
+
+        if isinstance(value, Decimal):
+            return float(value)
+
+        # Django model instance / ForeignKey
+        if hasattr(value, "pk"):
+            return value.pk
+
+        # FileField / ImageField
+        if hasattr(value, "url"):
+            try:
+                return value.url
+            except Exception:
+                pass
+
+        # Basic JSON-safe values
+        if isinstance(value, (str, int, float, bool)):
+            return value
+
+        # Lists / tuples
+        if isinstance(value, (list, tuple)):
+            return [
+                self.serialize_value(item)
+                for item in value
+            ]
+
+        # Dictionaries
+        if isinstance(value, dict):
+            return {
+                str(key): self.serialize_value(val)
+                for key, val in value.items()
+            }
+
+        # Fallback
+        return str(value)
+
+    def serialize_object(self, obj):
+        """
+        Convert a Django model instance into JSON-safe data.
+        """
+
+        data = {}
+
+        for field in obj._meta.fields:
+            try:
+                value = getattr(obj, field.name)
+                data[field.name] = self.serialize_value(value)
+            except Exception:
+                data[field.name] = None
+
+        return data
+
+    def get(self, request, resource):
+        model = self.get_model(resource)
+
+        if not model:
+            return Response(
+                {"detail": "Unknown admin resource."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            objects = model.objects.all().order_by("-pk")
+
+            data = [
+                self.serialize_object(obj)
+                for obj in objects
+            ]
+
+            return Response(
+                data,
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as exc:
+            return Response(
+                {
+                    "detail": "Unable to load resource.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def post(self, request, resource):
+        model = self.get_model(resource)
+
+        if not model:
+            return Response(
+                {"detail": "Unknown admin resource."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data.copy()
+
+        try:
+            obj = model.objects.create(**data)
+
+            return Response(
+                self.serialize_object(obj),
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as exc:
+            return Response(
+                {
+                    "detail": "Unable to create resource.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def put(self, request, resource, pk):
+        model = self.get_model(resource)
+
+        if not model:
+            return Response(
+                {"detail": "Unknown admin resource."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            obj = model.objects.get(pk=pk)
+
+        except model.DoesNotExist:
+            return Response(
+                {"detail": "Resource not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = request.data.copy()
+
+        try:
+            for key, value in data.items():
+
+                # Never allow changing the primary key
+                if key == "id":
+                    continue
+
+                # Only update real model fields
+                if hasattr(obj, key):
+                    setattr(obj, key, value)
+
+            obj.save()
+
+            return Response(
+                self.serialize_object(obj),
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as exc:
+            return Response(
+                {
+                    "detail": "Unable to update resource.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def delete(self, request, resource, pk):
+        model = self.get_model(resource)
+
+        if not model:
+            return Response(
+                {"detail": "Unknown admin resource."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            obj = model.objects.get(pk=pk)
+
+        except model.DoesNotExist:
+            return Response(
+                {"detail": "Resource not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            obj.delete()
+
+            return Response(
+                {"message": "Resource deleted successfully."},
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as exc:
+            return Response(
+                {
+                    "detail": "Unable to delete resource.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )

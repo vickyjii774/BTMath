@@ -1,4 +1,5 @@
 
+ 
 "use client";
 
 import { useState } from "react";
@@ -16,76 +17,102 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // =====================================================
+  // PUT THE NEW handleLogin HERE
+  // =====================================================
   async function handleLogin(e) {
     e.preventDefault();
 
     setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please provide username/email and password.");
+    if (!username.trim() || !password) {
+      setError("Please provide username and password.");
       return;
     }
 
     setLoading(true);
 
     try {
+      // Login
       const data = await loginUser(
         username.trim(),
         password
       );
 
-      /*
-       * Save authentication tokens.
-       */
-      if (data.access) {
-        localStorage.setItem(
-          "access_token",
-          data.access
+      console.log("LOGIN RESPONSE:", data);
+
+      // Check access token
+      if (!data?.access) {
+        throw new Error(
+          "Login succeeded but no access token was returned."
         );
       }
 
-      if (data.refresh) {
+      // Save JWT access token
+      localStorage.setItem(
+        "access_token",
+        data.access
+      );
+
+      // Save refresh token
+      if (data?.refresh) {
         localStorage.setItem(
           "refresh_token",
           data.refresh
         );
       }
 
-      /*
-       * Return the user to the page
-       * they originally wanted to access.
-       *
-       * Example:
-       * /login?next=/courses/grade-12-mathematics
-       *
-       * After login:
-       * /courses/grade-12-mathematics
-       */
+      // Save logged-in user
+      if (data?.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.user)
+        );
+
+        console.log(
+          "USER SAVED:",
+          data.user
+        );
+      } else {
+        throw new Error(
+          "Login succeeded but no user information was returned."
+        );
+      }
+
+      // Redirect
       const next = searchParams.get("next");
 
       if (next && next.startsWith("/")) {
-        router.push(next);
+        window.location.href = next;
       } else {
-        router.push("/");
+        window.location.href = "/";
       }
 
-      router.refresh();
-
     } catch (err) {
+      console.error("LOGIN ERROR:", err);
+
       setError(
         err?.message ||
-        "Invalid username/email or password."
+        "Invalid username or password."
       );
     } finally {
       setLoading(false);
     }
   }
 
+  // =====================================================
+  // YOUR RETURN STARTS HERE
+  // =====================================================
+
+
+
+
+
+  const next = searchParams.get("next");
+
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
-
       <div className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12">
-
         <div className="w-full">
 
           {/* Header */}
@@ -111,13 +138,13 @@ export default function LoginPage() {
               className="space-y-5"
             >
 
-              {/* Username / Email */}
+              {/* Username */}
               <div>
                 <label
                   htmlFor="username"
                   className="mb-2 block text-sm font-semibold text-gray-800"
                 >
-                  Username or Email
+                  Username
                 </label>
 
                 <input
@@ -127,10 +154,10 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setUsername(e.target.value)
                   }
-                  placeholder="Enter your username or email"
+                  placeholder="Enter your username"
                   autoComplete="username"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black"
                   disabled={loading}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black"
                 />
               </div>
 
@@ -152,8 +179,8 @@ export default function LoginPage() {
                   }
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black"
                   disabled={loading}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black"
                 />
               </div>
 
@@ -185,13 +212,11 @@ export default function LoginPage() {
               </p>
 
               <Link
-                href={`/register${
-                  searchParams.get("next")
-                    ? `?next=${encodeURIComponent(
-                        searchParams.get("next")
-                      )}`
-                    : ""
-                }`}
+                href={
+                  next
+                    ? `/register?next=${encodeURIComponent(next)}`
+                    : "/register"
+                }
                 className="mt-2 inline-block text-sm font-semibold text-black hover:underline"
               >
                 Create an account →
@@ -200,10 +225,8 @@ export default function LoginPage() {
             </div>
 
           </div>
-
         </div>
       </div>
-
     </main>
   );
 }

@@ -47,7 +47,6 @@ export async function getMasterPrograms() {
 }
 
 export async function getIOEPrograms() {
-<<<<<<< HEAD
   const res = await fetch(`${API_URL}/ioe/`, { cache: "no-store" });
   if (!res.ok) return [];
   return res.json();
@@ -117,13 +116,6 @@ export async function registerUser(arg1, maybeEmail, maybePassword) {
 
 
 
-export async function getMe() {
-  const res = await fetch(`${API_URL}/auth/me/`, {
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) throw new Error("Not authenticated");
-  return res.json();
-}
 
 export async function updateProfile(formData) {
   const res = await fetch(`${API_URL}/auth/profile/`, {
@@ -254,7 +246,7 @@ export async function getCounters() {
 
 
 export async function loginUser(username, password) {
-  const res = await fetch(`${API_URL}/auth/login/`, {
+  const response = await fetch(`${API_URL}/auth/login/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -265,26 +257,72 @@ export async function loginUser(username, password) {
     }),
   });
 
-  const data = await res.json();
+  const data = await response.json();
 
-  if (!res.ok) {
+  if (!response.ok) {
     throw new Error(
-      data.error ||
-      data.detail ||
-      "Login failed"
+      data?.detail ||
+      data?.message ||
+      data?.non_field_errors?.[0] ||
+      "Invalid username/email or password."
     );
   }
 
   return data;
-=======
-  const response = await fetch(`${API_URL}/ioe/`, {
-    cache: "no-store",
+}
+export async function getMe() {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/auth/me/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch IOE programs");
+    throw new Error("Failed to get current user");
   }
 
   return response.json();
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
+}
+
+
+// Admin dashboard
+
+
+export async function getAdminDashboard() {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    throw new Error("Admin authentication required.");
+  }
+
+  const response = await fetch(
+    `${API_URL}/admin/dashboard/`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.detail ||
+      data?.message ||
+      "Unable to load admin dashboard."
+    );
+  }
+
+  return data;
 }

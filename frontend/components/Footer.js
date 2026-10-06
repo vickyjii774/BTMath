@@ -31,60 +31,35 @@ export default function Footer() {
 
               <a
                 href="#"
-<<<<<<< HEAD
-                aria-label="Facebook"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 transition hover:bg-blue-600"
-=======
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 hover:bg-blue-600"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 <FaFacebookF />
               </a>
 
               <a
                 href="#"
-<<<<<<< HEAD
-                aria-label="WhatsApp"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 transition hover:bg-green-600"
-=======
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 hover:bg-green-600"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 <FaWhatsapp />
               </a>
 
               <a
                 href="#"
-<<<<<<< HEAD
-                aria-label="TikTok"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 transition hover:bg-black"
-=======
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 hover:bg-black"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 <FaTiktok />
               </a>
 
               <a
                 href="#"
-<<<<<<< HEAD
-                aria-label="YouTube"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 transition hover:bg-red-600"
-=======
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 hover:bg-red-600"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 <FaYoutube />
               </a>
 
               <a
                 href="#"
-<<<<<<< HEAD
-                aria-label="Instagram"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 transition hover:bg-pink-600"
-=======
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 hover:bg-pink-600"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 <FaInstagram />
               </a>
@@ -99,33 +74,6 @@ export default function Footer() {
             </h3>
 
             <div className="mt-4 space-y-3 text-sm">
-<<<<<<< HEAD
-              <Link
-                href="/plus-two"
-                className="block transition hover:text-white"
-              >
-                +2
-              </Link>
-
-              <Link
-                href="/bachelor"
-                className="block transition hover:text-white"
-              >
-                Bachelor
-              </Link>
-
-              <Link
-                href="/master"
-                className="block transition hover:text-white"
-              >
-                Master
-              </Link>
-
-              <Link
-                href="/ioe"
-                className="block transition hover:text-white"
-              >
-=======
               <Link href="/plus-two" className="block hover:text-white">
                 +2
               </Link>
@@ -139,7 +87,6 @@ export default function Footer() {
               </Link>
 
               <Link href="/ioe" className="block hover:text-white">
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                 IOE
               </Link>
             </div>
@@ -152,47 +99,22 @@ export default function Footer() {
             </h3>
 
             <div className="mt-4 space-y-3 text-sm">
-<<<<<<< HEAD
-              <Link
-                href="/notes"
-                className="block transition hover:text-white"
-              >
-                Notes
-              </Link>
-
-              <Link
-                href="/questions"
-                className="block transition hover:text-white"
-              >
-=======
               <Link href="/notes" className="block hover:text-white">
                 Notes
               </Link>
 
               <Link href="/questions" className="block hover:text-white">
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                 Question Papers
               </Link>
 
               <Link
                 href="/study-materials"
-<<<<<<< HEAD
-                className="block transition hover:text-white"
-=======
                 className="block hover:text-white"
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
               >
                 Study Materials
               </Link>
 
-<<<<<<< HEAD
-              <Link
-                href="/blogs"
-                className="block transition hover:text-white"
-              >
-=======
               <Link href="/blogs" className="block hover:text-white">
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                 Blogs
               </Link>
             </div>
@@ -205,33 +127,6 @@ export default function Footer() {
             </h3>
 
             <div className="mt-4 space-y-3 text-sm">
-<<<<<<< HEAD
-              <Link
-                href="/"
-                className="block transition hover:text-white"
-              >
-                Home
-              </Link>
-
-              <Link
-                href="/about"
-                className="block transition hover:text-white"
-              >
-                About Us
-              </Link>
-
-              <Link
-                href="/contact"
-                className="block transition hover:text-white"
-              >
-                Contact Us
-              </Link>
-
-              <Link
-                href="/privacy"
-                className="block transition hover:text-white"
-              >
-=======
               <Link href="/" className="block hover:text-white">
                 Home
               </Link>
@@ -245,7 +140,6 @@ export default function Footer() {
               </Link>
 
               <Link href="/privacy" className="block hover:text-white">
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
                 Privacy Policy
               </Link>
             </div>
@@ -262,7 +156,3 @@ export default function Footer() {
     </footer>
   );
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a

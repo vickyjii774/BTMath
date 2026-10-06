@@ -1,3 +1,4 @@
+from django.core.serializers import python
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
@@ -664,4 +665,77 @@ class UserCourseAccess(models.Model):
     def __str__(self):
         return f"{self.user} - {self.package}"
 
-    
+
+#admin
+
+class UserRequest(models.Model):
+    REQUEST_TYPES = [
+        ("verification", "Account Verification"),
+        ("enrollment", "Course Enrollment"),
+        ("course_access", "Course Access"),
+        ("instructor", "Instructor Request"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="requests",
+    )
+
+    request_type = models.CharField(
+        max_length=30,
+        choices=REQUEST_TYPES,
+        default="other",
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_requests",
+    )
+
+    message = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
+
+    admin_note = models.TextField(blank=True)
+
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_user_requests",
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return (
+            f"{self.user.username} - "
+            f"{self.get_request_type_display()} - "
+            f"{self.status}"
+        )
+

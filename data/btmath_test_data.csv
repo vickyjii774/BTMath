@@ -1,0 +1,47 @@
+﻿entity_type,record_key,parent_key,category_key,program_key,semester_key,academic_period_key,subject_key,course_key,chapter_key,material_key,user_username,user_email,full_name,phone,role,bio,name,level,description,duration_info,period_type,order,code,title,slug,price,discount_price,course_type,instructor,is_published,material_type,access_type,video_url,resource_url,content_text,question_text,solution_text,marks,difficulty,year_source,exam_source,is_solved,status,start_date,expiry_date,payment_method,transaction_code,amount,rejection_reason,verified_by_username,duration_type,features_list,is_active,is_completed,ip_address,package,purchased_at,expires_at
+Category,cat_plus2,,,,,,,,,,,,,,,,+2 Mathematics,plus2,Higher Secondary mathematics preparation for Grade 11 and Grade 12.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Program,prog_plus2_math,,cat_plus2,,,,,,,,,,,,,,+2 Mathematics,,Complete mathematics preparation for Grade 11 and Grade 12.,2 Years / 4 Semesters,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Semester,sem_grade11,,,prog_plus2_math,,,,,,,,,,,,,Grade 11,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Semester,sem_grade12,,,prog_plus2_math,,,,,,,,,,,,,Grade 12,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+AcademicPeriod,ap_grade11,,,prog_plus2_math,,,,,,,,,,,,,Grade 11,,Grade 11 mathematics academic period.,,grade,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+AcademicPeriod,ap_grade12,,,prog_plus2_math,,,,,,,,,,,,,Grade 12,,Grade 12 mathematics academic period.,,grade,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Subject,sub_math11,,,prog_plus2_math,,ap_grade11,,,,,,,,,,,Mathematics,,Grade 11 Mathematics,,,,MATH11,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Subject,sub_math12,,,prog_plus2_math,,ap_grade12,,,,,,,,,,,Mathematics,,Grade 12 Mathematics,,,,MATH12,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Course,course_math11,,,prog_plus2_math,sem_grade11,ap_grade11,sub_math11,,,,,,,,,,,,Complete Grade 11 Mathematics preparation.,,,,,Grade 11 Mathematics,grade-11-mathematics,0,0,free,BTMath Faculty,true,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Course,course_math12,,,prog_plus2_math,sem_grade12,ap_grade12,sub_math12,,,,,,,,,,,,Complete Grade 12 Mathematics preparation.,,,,,Grade 12 Mathematics,grade-12-mathematics,0,0,free,BTMath Faculty,true,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch11_sets,,,prog_plus2_math,,,,course_math11,,,,,,,,,,,Sets and Logic chapter for BTMath.,,,1,,Sets and Logic,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch11_algebra,,,prog_plus2_math,,,,course_math11,,,,,,,,,,,Algebra chapter for BTMath.,,,2,,Algebra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch11_trig,,,prog_plus2_math,,,,course_math11,,,,,,,,,,,Trigonometry chapter for BTMath.,,,3,,Trigonometry,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch12_calculus,,,prog_plus2_math,,,,course_math12,,,,,,,,,,,Calculus chapter for BTMath.,,,1,,Calculus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch12_algebra,,,prog_plus2_math,,,,course_math12,,,,,,,,,,,Algebra chapter for BTMath.,,,2,,Algebra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Chapter,ch12_vectors,,,prog_plus2_math,,,,course_math12,,,,,,,,,,,Vectors and Geometry chapter for BTMath.,,,3,,Vectors and Geometry,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Material,mat11_sets,,,,,,,course_math11,ch11_sets,,,,,,,,,,,,,1,,Introduction to Sets,,,,,,,note,free,,,"Sets, subsets, universal sets and set operations.",,,,,,,,,,,,,,,,,,,,,,,
+Material,mat11_functions,,,,,,,course_math11,ch11_algebra,,,,,,,,,,,,,1,,Introduction to Functions,,,,,,,video,preview,https://www.youtube.com/watch?v=BTMathDemo,,"Functions, domain, codomain and range.",,,,,,,,,,,,,,,,,,,,,,,
+Material,mat11_trig,,,,,,,course_math11,ch11_trig,,,,,,,,,,,,,1,,Trigonometric Ratios,,,,,,,pdf,free,,https://example.com/btmath/mat11_trig,"Sine, cosine and tangent and their basic relationships.",,,,,,,,,,,,,,,,,,,,,,,
+Material,mat12_diff,,,,,,,course_math12,ch12_calculus,,,,,,,,,,,,,1,,Introduction to Differentiation,,,,,,,note,free,,,Limits and basic differentiation concepts.,,,,,,,,,,,,,,,,,,,,,,,
+Material,mat12_integral,,,,,,,course_math12,ch12_calculus,,,,,,,,,,,,,2,,Introduction to Integration,,,,,,,video,preview,https://www.youtube.com/watch?v=BTMathDemo,,Basic antiderivatives and integration concepts.,,,,,,,,,,,,,,,,,,,,,,,
+Material,mat12_vectors,,,,,,,course_math12,ch12_vectors,,,,,,,,,,,,,1,,Vector Basics,,,,,,,pdf,free,,https://example.com/btmath/mat12_vectors,"Vectors, magnitude, direction and basic operations.",,,,,,,,,,,,,,,,,,,,,,,
+User,user_student,,,,,,,,,,student1,student1@btmath.test,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+UserProfile,profile_student,,,,,,,,,,student1,,BTMath Test Student,9800000000,student,Test student account for development.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+User,user_instructor,,,,,,,,,,instructor1,instructor1@btmath.test,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+UserProfile,profile_instructor,,,,,,,,,,instructor1,,BTMath Test Instructor,9811111111,instructor,Test instructor account for development.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Enrollment,enroll_student_math11,,,,,,,course_math11,,,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,active,2026-10-01T10:00:00+05:45,2027-10-01T10:00:00+05:45,,,,,,,,,,,,,
+SubscriptionPlan,plan_monthly,,,,,,,,,,,,,,,,BTMath Monthly,,,,,,,,,499,,,,,,,,,,,,,,,,,,,,,,,,,monthly,"Full course access
+Video lessons
+Notes and materials
+Practice questions",true,,,,,
+SubscriptionPlan,plan_yearly,,,,,,,,,,,,,,,,BTMath Yearly,,,,,,,,,4999,,,,,,,,,,,,,,,,,,,,,,,,,yearly,"Full course access
+Video lessons
+Notes and materials
+Practice questions
+Model questions",true,,,,,
+UserSubscription,subscription_student,plan_monthly,,,,,,,,,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,active,2026-10-01T10:00:00+05:45,2026-11-01T10:00:00+05:45,,,,,,,,,,,,,
+Payment,payment_student,,,,,,,course_math12,,,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,approved,2026-10-02T10:00:00+05:45,,esewa,TEST-ESEWA-001,499,,instructor1,,,,,,,,
+MaterialProgress,progress_sets,,,,,,,,,mat11_sets,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,2026-10-03T10:00:00+05:45,,,,,,,,,,true,,,,
+QuestionBank,q1,,,prog_plus2_math,,,sub_math11,course_math11,ch11_sets,,,,,,,,,,,,,,,,,,,,,,,,,,,"If A = {1, 2, 3} and B = {2, 3, 4}, find A ∩ B.","The common elements are 2 and 3, so A ∩ B = {2, 3}.",2,easy,2080,NEB Board,true,,,,,,,,,,,,,,,,
+QuestionBank,q2,,,prog_plus2_math,,,sub_math11,course_math11,ch11_algebra,,,,,,,,,,,,,,,,,,,,,,,,,,,Find the derivative of x².,d(x²)/dx = 2x.,2,easy,Model Question,NEB Model Question,true,,,,,,,,,,,,,,,,
+QuestionBank,q3,,,prog_plus2_math,,,sub_math12,course_math12,ch12_calculus,,,,,,,,,,,,,,,,,,,,,,,,,,,Differentiate sin(x).,The derivative of sin(x) is cos(x).,1,easy,2081,NEB Board,true,,,,,,,,,,,,,,,,
+QuestionBank,q4,,,prog_plus2_math,,,sub_math12,course_math12,ch12_vectors,,,,,,,,,,,,,,,,,,,,,,,,,,,"What is the magnitude of the vector (3, 4)?",Magnitude = √(3² + 4²) = 5.,2,medium,Model Question,NEB Model Question,true,,,,,,,,,,,,,,,,
+CourseAccessPackage,package_complete,,,,,,,,,,,,,,,,BTMath Complete Access,plus2,Complete +2 Mathematics access for testing.,,,,,,,4999,,,,,,,,,,,,,,,,,,,,,,,,,,,true,,,,,
+UserCourseAccess,access_student,,,,,,,,,,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,true,,,BTMath Complete Access,2026-10-01T10:00:00+05:45,2027-10-01T10:00:00+05:45
+LoginLog,login_student,,,,,,,,,,student1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,2026-10-05T09:00:00+05:45,,,,,,,,,,,127.0.0.1,,,

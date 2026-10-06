@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.core.serializers import python
 from django.utils import timezone
 from .models import (
     Category,
@@ -245,12 +246,47 @@ class MaterialProgressAdmin(admin.ModelAdmin):
 
 
 
-
-
-
 @admin.register(LoginLog)
 class LoginLogAdmin(admin.ModelAdmin):
     list_display = ("user", "logged_at", "ip_address")
     list_filter = ("logged_at",)
     search_fields = ("user__username", "user__email")
 
+
+from django.contrib import admin
+from .models import UserRequest
+
+
+@admin.register(UserRequest)
+class UserRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "request_type",
+        "course",
+        "status",
+        "reviewed_by",
+        "created_at",
+    )
+
+    list_filter = (
+        "request_type",
+        "status",
+        "created_at",
+    )
+
+    search_fields = (
+        "user__username",
+        "user__email",
+        "message",
+        "admin_note",
+    )
+
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "reviewed_at",
+    )
+
+    ordering = (
+        "-created_at",
+    )
