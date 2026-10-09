@@ -65,7 +65,7 @@ export default function Navbar() {
               onClick={() => setOpen(!open)}
               className="flex w-max items-center gap-1 pr-2 hover:text-blue-600"
             >
-              Menu
+              Programs
               <span>{open ? "▲" : "▼"}</span>
             </button>
 
@@ -115,6 +115,7 @@ export default function Navbar() {
           >
             Contact
           </Link>
+
 
           {/* Authentication */}
           {user ? (

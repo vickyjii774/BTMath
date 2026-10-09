@@ -186,10 +186,14 @@ export default function AdminPage() {
       setStats({
         students: data?.students ?? 0,
         courses: data?.courses ?? 0,
-        pending_requests:
-          data?.pending_requests ?? 0,
+        pending_requests: data?.pending_requests ?? 0,
         enrollments: data?.enrollments ?? 0,
         payments: data?.payments ?? 0,
+        purchases: data?.purchases ?? 0,
+        pending_payments: data?.pending_payments ?? 0,
+        total_visitors: data?.total_visitors ?? 0,
+        total_page_views: data?.total_page_views ?? 0,
+        unread_contacts: data?.unread_contacts ?? 0,
       });
 
     } catch (err) {
@@ -267,68 +271,75 @@ export default function AdminPage() {
    */
   const managementItems = [
     {
-      title: "Users",
+      title: "Students & Users",
       description:
-        "Manage registered users and permissions.",
+        "Search by Student ID (BTM-XXXXXX), toggle disabled accounts and reset passwords.",
       href: "/admin/users",
       icon: "👥",
     },
     {
-      title: "User Requests",
+      title: "Payments & Verification",
       description:
-        "Review and approve user requests.",
-      href: "/admin/requests",
-      icon: "📩",
+        "Approve manual eSewa/bank payments with receipt screenshots.",
+      href: "/admin/payments",
+      icon: "💳",
+      badge: stats.pending_payments > 0 ? `${stats.pending_payments} Pending` : null,
     },
     {
-      title: "Programs",
+      title: "Access Groups",
       description:
-        "Manage academic programs.",
-      href: "/admin/programs",
-      icon: "🎓",
+        "Manage access groups (PLUS_TWO, BACHELOR, MASTER, IOE) and course bundles.",
+      href: "/admin/access-groups",
+      icon: "🔑",
     },
+
     {
       title: "Courses",
       description:
-        "Create and manage courses.",
+        "Create, edit and publish mathematics courses.",
       href: "/admin/courses",
       icon: "📚",
     },
     {
-      title: "Subjects",
-      description:
-        "Manage subjects and course subjects.",
-      href: "/admin/subjects",
-      icon: "📖",
-    },
-    {
       title: "Chapters",
       description:
-        "Create and organize chapters.",
+        "Create and organize chapters within courses.",
       href: "/admin/chapters",
       icon: "🗂️",
     },
     {
-      title: "Materials",
+      title: "Lessons",
       description:
-        "Upload notes, videos, PDFs and learning materials.",
+        "Manage video lessons, YouTube lecture URLs and lesson content.",
+      href: "/admin/lessons",
+      icon: "🎥",
+    },
+    {
+      title: "Materials & Notes",
+      description:
+        "Upload PDFs, DOCX, past questions, and formula sheets.",
       href: "/admin/materials",
       icon: "📄",
     },
     {
-      title: "Enrollments",
+      title: "Contact Inquiries",
       description:
-        "Manage student course access.",
-      href: "/admin/enrollments",
-      icon: "✅",
+        "Review incoming messages and student questions.",
+      href: "/admin/contacts",
+      icon: "📬",
+      badge: stats.unread_contacts > 0 ? `${stats.unread_contacts} New` : null,
     },
+   
+  
     {
-      title: "Payments",
+      title: "Academic Programs",
       description:
-        "Review payments and transactions.",
-      href: "/admin/payments",
-      icon: "💳",
+        "Manage academic programs (+2, BSc, CSIT, BCA, BIM, Master, IOE).",
+      href: "/admin/programs",
+      icon: "🎓",
     },
+  
+  
   ];
 
   return (
@@ -397,72 +408,78 @@ export default function AdminPage() {
         </section>
 
         {/* Statistics */}
-        <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          <StatCard
+            title="Total Visitors"
+            value={stats.total_visitors || stats.total_page_views || 0}
+            icon="👁️"
+          />
 
           <StatCard
-            title="Users"
+            title="Registered Students"
             value={stats.students}
             icon="👥"
           />
 
           <StatCard
-            title="Courses"
+            title="Total Courses"
             value={stats.courses}
             icon="📚"
           />
 
           <StatCard
-            title="Enrollments"
-            value={stats.enrollments}
-            icon="🎓"
+            title="Active Purchases"
+            value={stats.purchases || stats.enrollments || 0}
+            icon="🛍️"
           />
 
           <StatCard
-            title="Pending Requests"
-            value={stats.pending_requests}
-            icon="📩"
-          />
-
-          <StatCard
-            title="Payments"
-            value={stats.payments}
+            title="Pending Payments"
+            value={stats.pending_payments || 0}
             icon="💳"
           />
 
+          <StatCard
+            title="New Inquiries"
+            value={stats.unread_contacts || 0}
+            icon="📬"
+          />
         </section>
 
         {/* Management */}
         <section>
-
           <div className="mb-6">
             <h2 className="text-xl font-bold">
-              Management
+              Management & Operations
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Control the main areas of the BTMath platform.
+              Control courses, access groups, payments, students, and website resources.
             </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-
             {managementItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md"
               >
-
                 <div className="flex items-start justify-between">
-
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-xl">
                     {item.icon}
                   </span>
 
-                  <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">
-                    →
-                  </span>
-
+                  <div className="flex items-center gap-2">
+                    {item.badge && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                        {item.badge}
+                      </span>
+                    )}
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">
+                      →
+                    </span>
+                  </div>
                 </div>
 
                 <h3 className="mt-5 text-lg font-bold">
@@ -481,23 +498,6 @@ export default function AdminPage() {
             ))}
 
           </div>
-
-        </section>
-
-        {/* Dashboard API information */}
-        <section className="mt-12 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-
-          <h2 className="text-lg font-bold">
-            Dashboard Data
-          </h2>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Live statistics returned from the Django API.
-          </p>
-
-          <pre className="mt-5 overflow-x-auto rounded-xl bg-gray-950 p-5 text-sm text-gray-100">
-{JSON.stringify(stats, null, 2)}
-          </pre>
 
         </section>
 

@@ -15,13 +15,18 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+import { submitContactMessage } from "../../lib/api";
+
 export default function ContactPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     subject: "",
     message: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null);
 
   const handleChange = (e) => {
     setForm({
@@ -30,19 +35,32 @@ export default function ContactPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setStatus(null);
 
-    console.log(form);
-
-    alert("Thank you! Your message has been submitted.");
-
-    setForm({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+    try {
+      const res = await submitContactMessage(form);
+      setStatus({
+        type: "success",
+        message: res.message || "Thank you! Your message has been received.",
+      });
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: "",
+      });
+    } catch (err) {
+      setStatus({
+        type: "error",
+        message: err.message || "Failed to send message. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,9 +99,22 @@ export default function ContactPage() {
                 Fill out the form and our team will get back to you.
               </p>
 
+              {status && (
+                <div
+                  className={`mt-4 rounded-xl border p-4 text-sm font-semibold ${
+                    status.type === "success"
+                      ? "border-green-200 bg-green-50 text-green-800"
+                      : "border-red-200 bg-red-50 text-red-700"
+                  }`}
+                >
+                  {status.type === "success" ? "✓ " : "⚠ "}
+                  {status.message}
+                </div>
+              )}
+
               <form
                 onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
+                className="mt-6 space-y-5"
               >
 
                 {/* Name */}

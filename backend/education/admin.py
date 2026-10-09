@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.core.serializers import python
 from django.utils import timezone
 from .models import (
     Category,
@@ -7,17 +6,26 @@ from .models import (
     Semester,
     AcademicPeriod,
     Subject,
+    AccessGroup,
+    UserAccessGroup,
     Course,
     Chapter,
+    Lesson,
     Material,
     UserProfile,
     Enrollment,
     Payment,
+    Purchase,
     SubscriptionPlan,
     UserSubscription,
     MaterialProgress,
-
     LoginLog,
+    ContactMessage,
+    SocialLink,
+    SiteStatistic,
+    AuditLog,
+    PasswordResetToken,
+    UserRequest,
 )
 
 
@@ -88,14 +96,18 @@ class CourseAdmin(admin.ModelAdmin):
         "program",
         "academic_period",
         "subject",
+        "access_group",
         "price",
         "discount_price",
+        "is_free",
         "course_type",
         "is_published",
         "created_at",
     )
     list_filter = (
         "is_published",
+        "is_free",
+        "access_group",
         "course_type",
         "program__category",
         "program",
@@ -160,9 +172,9 @@ class MaterialAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "full_name", "phone", "role", "created_at")
-    list_filter = ("role",)
-    search_fields = ("user__username", "user__email", "full_name", "phone")
+    list_display = ("student_id", "user", "full_name", "phone", "education_level", "role", "is_disabled", "created_at")
+    list_filter = ("role", "is_disabled", "education_level")
+    search_fields = ("student_id", "user__username", "user__email", "full_name", "phone")
 
 
 @admin.register(Enrollment)
@@ -194,35 +206,28 @@ class PaymentAdmin(admin.ModelAdmin):
     )
     actions = ["approve_payments", "reject_payments"]
 
-    @admin.action(description="Approve selected payments & activate course enrollment")
+    @admin.action(description="Approve selected payments & activate access groups/purchases")
     def approve_payments(self, request, queryset):
+        from .views import process_payment_decision
+        count = 0
         for payment in queryset:
-            payment.status = "approved"
-            payment.verified_by = request.user
-            payment.verified_at = timezone.now()
-            payment.save()
-
-            if payment.course:
-                Enrollment.objects.update_or_create(
-                    user=payment.user,
-                    course=payment.course,
-                    defaults={"status": "active"}
-                )
+            process_payment_decision(payment, "approved", admin_user=request.user)
+            count += 1
         self.message_user(
             request,
-            f"{queryset.count()} payment(s) approved and enrollments activated successfully."
+            f"{count} payment(s) approved, purchases created, and access groups granted."
         )
 
     @admin.action(description="Reject selected payments")
     def reject_payments(self, request, queryset):
-        queryset.update(
-            status="rejected",
-            verified_by=request.user,
-            verified_at=timezone.now()
-        )
+        from .views import process_payment_decision
+        count = 0
+        for payment in queryset:
+            process_payment_decision(payment, "rejected", admin_user=request.user, rejection_reason="Rejected by admin action.")
+            count += 1
         self.message_user(
             request,
-            f"{queryset.count()} payment(s) rejected."
+            f"{count} payment(s) rejected."
         )
 
 
@@ -290,3 +295,71 @@ class UserRequestAdmin(admin.ModelAdmin):
     ordering = (
         "-created_at",
     )
+
+
+@admin.register(AccessGroup)
+class AccessGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "is_active", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(UserAccessGroup)
+class UserAccessGroupAdmin(admin.ModelAdmin):
+    list_display = ("user", "access_group", "is_active", "granted_at", "expires_at", "granted_by")
+    list_filter = ("is_active", "access_group")
+    search_fields = ("user__username", "user__email", "access_group__name")
+
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ("title", "chapter", "order", "is_published", "created_at")
+    list_filter = ("is_published", "chapter__course")
+    search_fields = ("title", "description", "chapter__title")
+    ordering = ("chapter", "order")
+
+
+@admin.register(Purchase)
+class PurchaseAdmin(admin.ModelAdmin):
+    list_display = ("user", "course", "access_group", "amount", "is_active", "created_at")
+    list_filter = ("is_active", "access_group")
+    search_fields = ("user__username", "user__email", "course__title")
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ("name", "email", "phone", "subject", "is_read", "is_replied", "is_archived", "created_at")
+    list_filter = ("is_read", "is_replied", "is_archived", "created_at")
+    search_fields = ("name", "email", "phone", "subject", "message")
+    ordering = ("-created_at",)
+
+
+@admin.register(SocialLink)
+class SocialLinkAdmin(admin.ModelAdmin):
+    list_display = ("title", "platform", "url", "is_active", "order")
+    list_filter = ("is_active", "platform")
+    search_fields = ("title", "url")
+    ordering = ("order",)
+
+
+@admin.register(SiteStatistic)
+class SiteStatisticAdmin(admin.ModelAdmin):
+    list_display = ("total_visitors", "total_page_views", "updated_at")
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("admin", "action", "target_type", "target_id", "ip_address", "created_at")
+    list_filter = ("action", "target_type", "created_at")
+    search_fields = ("admin__username", "description", "target_id")
+    readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+
+
+@admin.register(PasswordResetToken)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
+    list_display = ("user", "token", "is_used", "expires_at", "created_at")
+    list_filter = ("is_used", "created_at")
+    search_fields = ("user__username", "user__email", "token")
+

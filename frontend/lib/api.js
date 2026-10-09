@@ -1,328 +1,704 @@
+// ============================================================
+// BTMath API Helper
+// File: frontend/lib/api.js
+// ============================================================
+//
+// PURPOSE:
+// This file is responsible for communicating between the
+// Next.js frontend and the Django backend.
+//
+// Frontend:
+//   http://localhost:3000
+//
+// Django Backend:
+//   http://127.0.0.1:8000
+//
+// Django API:
+//   http://127.0.0.1:8000/api
+// ============================================================
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+
+// ============================================================
+// 1. BACKEND API BASE URL
+// ============================================================
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000/api"
+).replace(/\/$/, "");
+
+
+// ============================================================
+// 2. GET ACCESS TOKEN
+// ============================================================
 
 function getAuthToken() {
   if (typeof window !== "undefined") {
     return localStorage.getItem("access_token");
   }
+
   return null;
 }
 
-function getAuthHeaders(isJson = true) {
+
+// ============================================================
+// 3. CREATE AUTH HEADERS
+// ============================================================
+//
+// includeAuth = true
+//   → Send JWT token.
+//
+// includeAuth = false
+//   → Do NOT send JWT.
+//
+// Login/register/refresh requests use includeAuth = false
+// so an expired access token cannot break authentication.
+// ============================================================
+
+function getAuthHeaders(isJson = true, includeAuth = true) {
   const headers = {};
+
   if (isJson) {
     headers["Content-Type"] = "application/json";
   }
-  const token = getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+
+  if (includeAuth && typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token");
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
+
   return headers;
 }
 
-// 1. Categories & Programs
-export async function getCategories() {
-  const res = await fetch(`${API_URL}/categories/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
+
+// ============================================================
+// 4. MAIN API FETCH FUNCTION
+// ============================================================
+
+export async function apiFetch(endpoint, options = {}) {
+
+  // ----------------------------------------------------------
+  // Build clean endpoint
+  // ----------------------------------------------------------
+
+  const cleanEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+
+
+  // ----------------------------------------------------------
+  // Build complete URL
+  // ----------------------------------------------------------
+
+  const url =
+    endpoint.startsWith("http://") ||
+    endpoint.startsWith("https://")
+      ? endpoint
+      : `${API_URL}${cleanEndpoint}`;
+
+
+  // ----------------------------------------------------------
+  // Authentication endpoints
+  // ----------------------------------------------------------
+  //
+  // IMPORTANT:
+  // Never send an old/expired access token to these endpoints.
+  //
+  // Otherwise Django REST Framework may reject the request
+  // before LoginAPIView gets a chance to check username/password.
+  // ----------------------------------------------------------
+
+  const isAuthEndpoint =
+    cleanEndpoint === "/auth/login/" ||
+    cleanEndpoint === "/auth/register/" ||
+    cleanEndpoint === "/auth/refresh/";
+
+
+  // ----------------------------------------------------------
+  // Create headers
+  // ----------------------------------------------------------
+
+  const authHeaders = getAuthHeaders(
+    true,
+    !isAuthEndpoint
+  );
+
+
+  // ----------------------------------------------------------
+  // Debug request
+  // ----------------------------------------------------------
+
+  console.log("=================================");
+  console.log("BTMath API REQUEST:", url);
+  console.log("AUTH ENDPOINT:", isAuthEndpoint);
+  console.log("=================================");
+
+
+  try {
+
+    // --------------------------------------------------------
+    // Send request
+    // --------------------------------------------------------
+
+    const response = await fetch(url, {
+      ...options,
+
+      headers: {
+        ...authHeaders,
+        ...(options.headers || {}),
+      },
+
+      // Prevent Next.js from caching API data.
+      cache: "no-store",
+    });
+
+
+    // --------------------------------------------------------
+    // Read response
+    // --------------------------------------------------------
+
+    const text = await response.text();
+
+
+    console.log("BTMath API RESPONSE");
+    console.log("URL:", url);
+    console.log("STATUS:", response.status);
+    console.log("STATUS TEXT:", response.statusText);
+    console.log("OK:", response.ok);
+    console.log("BODY:", text);
+
+
+    // --------------------------------------------------------
+    // Handle API errors
+    // --------------------------------------------------------
+
+    if (!response.ok) {
+
+      console.error("=================================");
+      console.error("BTMath API ERROR");
+      console.error("URL:", url);
+      console.error("STATUS:", response.status);
+      console.error("STATUS TEXT:", response.statusText);
+      console.error("BODY:", text);
+      console.error("=================================");
+
+
+      throw new Error(
+        `BTMath API ${response.status} ${response.statusText}${
+          text ? ` - ${text}` : ""
+        }`
+      );
+    }
+
+
+    // --------------------------------------------------------
+    // Empty response
+    // --------------------------------------------------------
+
+    if (!text) {
+      return null;
+    }
+
+
+    // --------------------------------------------------------
+    // Convert JSON response
+    // --------------------------------------------------------
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      // If Django returned plain text
+      return text;
+    }
+
+  } catch (error) {
+
+    console.error("=================================");
+    console.error("BTMath FETCH FAILED");
+    console.error("URL:", url);
+    console.error("ERROR MESSAGE:", error?.message);
+    console.error("ERROR NAME:", error?.name);
+    console.error("ERROR STACK:", error?.stack);
+    console.error("=================================");
+
+    throw error;
+  }
 }
+
+
+// ============================================================
+// 5. CATEGORIES
+// ============================================================
+
+export async function getCategories() {
+  return apiFetch("/categories/");
+}
+
+
+// ============================================================
+// 6. ALL COURSES
+// ============================================================
+
+export async function getCourses(params = {}) {
+
+  const query = new URLSearchParams();
+
+  if (params.level) {
+    query.append("level", params.level);
+  }
+
+  if (params.program) {
+    query.append("program", params.program);
+  }
+
+  if (params.category) {
+    query.append("category", params.category);
+  }
+
+  if (params.search) {
+    query.append("search", params.search);
+  }
+
+  const queryString = query.toString();
+
+  const endpoint = queryString
+    ? `/courses/?${queryString}`
+    : "/courses/";
+
+  return apiFetch(endpoint);
+}
+
+
+// ============================================================
+// 7. BACHELOR COURSES
+// ============================================================
+
+export async function getBachelorCourses() {
+  return apiFetch("/courses/?level=bachelor");
+}
+
+
+// ============================================================
+// 8. BACHELOR PROGRAMS
+// ============================================================
 
 export async function getBachelorPrograms() {
-  const res = await fetch(`${API_URL}/bachelor/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getPlusTwoPrograms() {
-  const res = await fetch(`${API_URL}/plus-two/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getMasterPrograms() {
-  const res = await fetch(`${API_URL}/master/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getIOEPrograms() {
-  const res = await fetch(`${API_URL}/ioe/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getProgramDetail(slugOrId) {
-  const res = await fetch(`${API_URL}/programs/${slugOrId}/`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load program");
-  return res.json();
-}
-
-// 2. Courses
-export async function getCourses(params = {}) {
-  const query = new URLSearchParams();
-  if (params.level) query.append("level", params.level);
-  if (params.program) query.append("program", params.program);
-  if (params.search) query.append("search", params.search);
-
-  const res = await fetch(`${API_URL}/courses/?${query.toString()}`, {
-    cache: "no-store",
-    headers: getAuthHeaders(false),
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getCourseDetail(slug) {
-  const res = await fetch(`${API_URL}/courses/${slug}/`, {
-    cache: "no-store",
-    headers: getAuthHeaders(false),
-  });
-  if (!res.ok) throw new Error("Course not found");
-  return res.json();
-}
-
-export async function toggleMaterialProgress(materialId) {
-  const res = await fetch(`${API_URL}/progress/toggle/${materialId}/`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) throw new Error("Failed to update progress");
-  return res.json();
-}
-
-// 3. Authentication
-export async function registerUser(arg1, maybeEmail, maybePassword) {
-  let body;
-  if (typeof arg1 === "object" && arg1 !== null) {
-    body = arg1;
-  } else {
-    body = {
-      username: arg1,
-      email: maybeEmail,
-      password: maybePassword,
-      confirm_password: maybePassword,
-    };
-  }
-  const res = await fetch(`${API_URL}/auth/register/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Registration failed");
-  return data;
+  return apiFetch("/bachelor/");
 }
 
 
+// ============================================================
+// 9. PLUS TWO COURSES
+// ============================================================
 
-
-export async function updateProfile(formData) {
-  const res = await fetch(`${API_URL}/auth/profile/`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
-    },
-    body: formData,
-  });
-  if (!res.ok) throw new Error("Failed to update profile");
-  return res.json();
+export async function getPlusTwoCourses() {
+  return apiFetch("/courses/?level=plus2");
 }
 
-// 4. Student Dashboard
-export async function getStudentDashboard() {
-  const res = await fetch(`${API_URL}/dashboard/`, {
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) throw new Error("Failed to load dashboard data");
-  return res.json();
+
+// ============================================================
+// 10. MASTER COURSES
+// ============================================================
+
+export async function getMasterCourses() {
+  return apiFetch("/courses/?level=master");
 }
 
-// 5. Payments
-export async function submitPayment(formData) {
-  const res = await fetch(`${API_URL}/payments/submit/`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
-    },
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Payment submission failed");
-  return data;
+
+// ============================================================
+// 11. IOE COURSES
+// ============================================================
+
+export async function getIOECourses() {
+  return apiFetch("/courses/?level=ioe");
 }
 
-export async function getUserPayments() {
-  const res = await fetch(`${API_URL}/payments/history/`, {
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) return [];
-  return res.json();
+
+// ============================================================
+// 12. SINGLE COURSE
+// ============================================================
+
+export async function getCourse(courseId) {
+  return apiFetch(`/courses/${courseId}/`);
 }
 
-// 6. Question Bank & MCQs
-export async function getQuestionBank(params = {}) {
-  const query = new URLSearchParams();
-  if (params.difficulty) query.append("difficulty", params.difficulty);
-  if (params.program) query.append("program", params.program);
-  if (params.search) query.append("search", params.search);
 
-  const res = await fetch(`${API_URL}/questions/?${query.toString()}`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getMCQs(params = {}) {
-  const query = new URLSearchParams();
-  if (params.topic) query.append("topic", params.topic);
-  if (params.difficulty) query.append("difficulty", params.difficulty);
-  if (params.program) query.append("program", params.program);
-
-  const res = await fetch(`${API_URL}/mcqs/?${query.toString()}`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-// 7. Mock Tests
-export async function getMockTests() {
-  const res = await fetch(`${API_URL}/mock-tests/`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getMockTestDetail(slugOrId) {
-  const res = await fetch(`${API_URL}/mock-tests/${slugOrId}/`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Mock test not found");
-  return res.json();
-}
-
-export async function submitMockTest(slugOrId, answers, timeTakenSeconds) {
-  const res = await fetch(`${API_URL}/mock-tests/${slugOrId}/submit/`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ answers, time_taken_seconds: timeTakenSeconds }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to submit test");
-  return data;
-}
-
-// 8. Past Questions & Formulas
-export async function getPastQuestions(params = {}) {
-  const query = new URLSearchParams();
-  if (params.year) query.append("year", params.year);
-  if (params.program) query.append("program", params.program);
-  if (params.solved !== undefined) query.append("solved", params.solved);
-
-  const res = await fetch(`${API_URL}/past-questions/?${query.toString()}`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getFormulas(params = {}) {
-  const query = new URLSearchParams();
-  if (params.level) query.append("level", params.level);
-  if (params.topic) query.append("topic", params.topic);
-
-  const res = await fetch(`${API_URL}/formulas/?${query.toString()}`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-// 9. Real Database Counters
-export async function getCounters() {
-  const res = await fetch(`${API_URL}/statistics/counters/`, { cache: "no-store" });
-  if (!res.ok) {
-    return {
-      total_students: 0,
-      total_courses: 0,
-      total_purchases: 0,
-      total_questions: 0,
-      total_mcqs: 0,
-    };
-  }
-  return res.json();
-}
-
+// ============================================================
+// 13. LOGIN
+// ============================================================
 
 export async function loginUser(username, password) {
-  const response = await fetch(`${API_URL}/auth/login/`, {
+
+  return apiFetch("/auth/login/", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+
     body: JSON.stringify({
       username,
       password,
     }),
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data?.detail ||
-      data?.message ||
-      data?.non_field_errors?.[0] ||
-      "Invalid username/email or password."
-    );
-  }
-
-  return data;
 }
-export async function getMe() {
-  const token = localStorage.getItem("access_token");
 
-  if (!token) {
-    throw new Error("Not authenticated");
-  }
 
-  const response = await fetch(`${API_URL}/auth/me/`, {
+// ============================================================
+// 14. REGISTER
+// ============================================================
+
+export async function registerUser(userData) {
+
+  return apiFetch("/auth/register/", {
+    method: "POST",
+
+    body: JSON.stringify(userData),
+  });
+}
+
+
+// ============================================================
+// 15. GET CURRENT USER
+// ============================================================
+
+export async function getCurrentUser(token) {
+
+  return apiFetch("/auth/me/", {
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
     },
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to get current user");
-  }
-
-  return response.json();
 }
 
 
-// Admin dashboard
+// ============================================================
+// 16. PURCHASE / PAYMENT
+// ============================================================
+//
+// Current Django payment endpoint:
+// POST /api/payments/submit/
+//
+// The JWT is automatically added by apiFetch().
+// ============================================================
 
+export async function createPayment(paymentData, token) {
 
-export async function getAdminDashboard() {
-  const token = localStorage.getItem("access_token");
+  const headers = {};
 
-  if (!token) {
-    throw new Error("Admin authentication required.");
+  // If a token was explicitly supplied, use it.
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(
-    `${API_URL}/admin/dashboard/`,
+  return apiFetch("/payments/submit/", {
+    method: "POST",
+
+    headers,
+
+    body: JSON.stringify(paymentData),
+  });
+}
+
+
+// ============================================================
+// 17. PAYMENT HISTORY
+// ============================================================
+
+export async function getPaymentHistory(token) {
+
+  const headers = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return apiFetch("/payments/history/", {
+    headers,
+  });
+}
+
+
+// ============================================================
+// 18. ADMIN RESOURCE - GET
+// ============================================================
+
+export async function getAdminResource(resource, token) {
+
+  const headers = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return apiFetch(`/admin/${resource}/`, {
+    headers,
+  });
+}
+
+
+// ============================================================
+// 19. ADMIN RESOURCE - CREATE
+// ============================================================
+
+export async function createAdminResource(
+  resource,
+  data,
+  token
+) {
+
+  const headers = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return apiFetch(`/admin/${resource}/`, {
+    method: "POST",
+
+    headers,
+
+    body: JSON.stringify(data),
+  });
+}
+
+
+// ============================================================
+// 20. ADMIN RESOURCE - UPDATE
+// ============================================================
+
+export async function updateAdminResource(
+  resource,
+  id,
+  data,
+  token
+) {
+
+  const headers = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return apiFetch(`/admin/${resource}/${id}/`, {
+    method: "PUT",
+
+    headers,
+
+    body: JSON.stringify(data),
+  });
+}
+
+
+// ============================================================
+// 21. ADMIN RESOURCE - DELETE
+// ============================================================
+
+export async function deleteAdminResource(
+  resource,
+  id,
+  token
+) {
+
+  const headers = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return apiFetch(`/admin/${resource}/${id}/`, {
+    method: "DELETE",
+
+    headers,
+  });
+}
+
+
+// ============================================================
+// 22. SITE COUNTERS
+// ============================================================
+
+export async function getCounters() {
+  return apiFetch("/statistics/counters/");
+}
+
+
+// ============================================================
+// 23. RECORD SITE VISIT
+// ============================================================
+
+export async function recordSiteVisit() {
+
+  return apiFetch("/statistics/record-visit/", {
+    method: "POST",
+  });
+}
+
+
+// ============================================================
+// 24. SOCIAL LINKS
+// ============================================================
+
+export async function getSocialLinks() {
+  return apiFetch("/social-links/");
+}
+
+
+// ============================================================
+// 25. STUDENT DASHBOARD
+// ============================================================
+
+export async function getStudentDashboard() {
+  return apiFetch("/dashboard/");
+}
+
+
+// ============================================================
+// 26. MY ACCESS GROUPS
+// ============================================================
+//
+// This is used for the rule:
+//
+// Buying ONE course in a section unlocks the entire section.
+//
+// Example:
+//
+// Buy one +2 course
+//      ↓
+// Unlock all +2 courses
+//
+// Buy one Bachelor course
+//      ↓
+// Unlock all Bachelor courses
+// ============================================================
+
+export async function getMyAccessGroups() {
+  return apiFetch("/my-access-groups/");
+}
+
+
+// ============================================================
+// 27. MY PURCHASES
+// ============================================================
+
+export async function getMyPurchases() {
+  return apiFetch("/my-purchases/");
+}
+
+
+// ============================================================
+// 28. TOGGLE COURSE MATERIAL PROGRESS
+// ============================================================
+
+export async function toggleMaterialProgress(materialId) {
+
+  return apiFetch(
+    `/progress/toggle/${materialId}/`,
     {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
+      method: "POST",
     }
   );
+}
 
-  const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(
-      data?.detail ||
-      data?.message ||
-      "Unable to load admin dashboard."
-    );
-  }
+// ============================================================
+// 29. REFRESH ACCESS TOKEN
+// ============================================================
 
-  return data;
+// /auth/refresh/.
+
+
+export async function refreshAccessToken(refreshToken) {
+
+  return apiFetch("/auth/refresh/", {
+    method: "POST",
+
+    body: JSON.stringify({
+      refresh: refreshToken,
+    }),
+  });
+}
+
+// ============================================================
+// 30. CONTACT MESSAGE
+// ============================================================
+
+export async function submitContactMessage(formData) {
+  return apiFetch("/contact/", {
+    method: "POST",
+    body: JSON.stringify(formData),
+  });
+}
+
+
+// ============================================================
+// 31. ADMIN STUDENT DETAIL
+// ============================================================
+
+export async function getAdminStudentDetail(userId) {
+  return apiFetch(`/admin/users/${userId}/`);
+}
+
+
+// ============================================================
+// 32. ADMIN TOGGLE DISABLE USER
+// ============================================================
+
+export async function toggleDisableUser(userId) {
+  return apiFetch(`/admin/users/${userId}/toggle-disable/`, {
+    method: "POST",
+  });
+}
+
+
+
+// 33. ADMIN RESET USER PASSWORD
+// ============================================================
+
+export async function resetUserPassword(userId, data = {}) {
+  return apiFetch(`/admin/users/${userId}/reset-password/`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+
+// ============================================================
+// 34. ADMIN MANAGE USER ACCESS
+// ============================================================
+
+export async function manageUserAccess(userId, data = {}) {
+  return apiFetch(`/admin/users/${userId}/access/`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ============================================================
+// 35. ADMIN APPROVE PAYMENT
+// ============================================================
+
+export async function approvePayment(paymentId, data = {}) {
+  return apiFetch(`/admin/payments/${paymentId}/approve/`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+
+// ============================================================
+// 36. ADMIN REJECT PAYMENT
+// ============================================================
+
+// ============================================================
+// ADMIN REJECT PAYMENT
+// ============================================================
+
+export async function rejectPayment(paymentId, reason = "") {
+  return apiFetch(`/admin/payments/${paymentId}/reject/`, {
+    method: "POST",
+
+    body: JSON.stringify({
+      rejection_reason: reason,
+    }),
+  });
 }

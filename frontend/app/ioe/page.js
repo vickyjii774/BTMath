@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -10,29 +6,57 @@ export default function IOEPage() {
   const sections = [
     {
       id: "past-questions",
-<<<<<<< HEAD
       number: "01",
       name: "Past Questions",
       description:
-        "Solve previous IOE entrance questions and understand the patterns, concepts, and difficulty of the exam.",
-      label: "Practice & Analyse",
+        "Access solved IOE Entrance exam questions from 2078, 2079, 2080 and master recurring question patterns.",
+      label: "Practice & Analysis",
+      href: "/courses?level=ioe",
     },
     {
       id: "short-tricks",
       number: "02",
-      name: "Short Tricks",
+      name: "Mathematics Short Tricks",
       description:
-        "Master faster calculation methods, shortcuts, and time-saving techniques for competitive entrance exams.",
-      label: "Learn Faster",
-=======
-      name: "Past Questions",
-      description: "Practice previous IOE questions and exam papers.",
+        "Master high-speed shortcuts for Limits, Derivatives, Integration, and Vectors to solve problems in under 30 seconds.",
+      label: "Speed & Accuracy",
+      href: "/courses?level=ioe",
     },
     {
-      id: "short-tricks",
-      name: "Short Tricks",
-      description: "Learn quick methods and tricks for solving problems.",
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
+      id: "formula-sheets",
+      number: "03",
+      name: "Formula Sheets & Handbooks",
+      description:
+        "Download complete printable formula guides covering all 11 & 12 topics tailored for engineering aspirants.",
+      label: "Quick Revision",
+      href: "/courses?level=ioe",
+    },
+    {
+      id: "model-questions",
+      number: "04",
+      name: "Model Questions & Practice Sets",
+      description:
+        "Full-length model tests modeled on recent IOE computer-based test formats with marking schemes.",
+      label: "Exam Simulation",
+      href: "/courses?level=ioe",
+    },
+    {
+      id: "video-lectures",
+      number: "05",
+      name: "Video Explanations",
+      description:
+        "Detailed step-by-step video lessons and recorded problem walkthroughs by experienced mathematics instructors.",
+      label: "Conceptual Depth",
+      href: "/courses?level=ioe",
+    },
+    {
+      id: "notes-handouts",
+      number: "06",
+      name: "Hand-Written Notes & PDFs",
+      description:
+        "High-yield chapter summaries, theory overviews, and carefully chosen practice problem sets with answer keys.",
+      label: "Self Study",
+      href: "/courses?level=ioe",
     },
   ];
 
@@ -40,120 +64,92 @@ export default function IOEPage() {
     <main className="min-h-screen bg-gray-50 text-gray-900">
       <Navbar />
 
-<<<<<<< HEAD
       {/* Hero */}
       <section className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
           <div className="max-w-3xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-gray-500">
-              Engineering Entrance Preparation
-            </p>
+            <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-800 mb-4">
+              IOE Engineering Entrance
+            </span>
 
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-              IOE Mathematics
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-gray-950">
+              IOE Mathematics Entrance Preparation
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
-              Build speed, accuracy, and confidence for the IOE entrance
-              examination with focused practice, previous questions, and
-              proven problem-solving techniques.
+              Master the highest-scoring section of the IOE Entrance examination. Build rapid speed, absolute accuracy, and conceptual clarity with past questions, short tricks, and curated study sets.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/courses?level=ioe"
-                className="inline-flex items-center rounded-lg bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
+                className="inline-flex items-center rounded-xl bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800"
               >
-                Explore IOE Courses
-                <span className="ml-2">→</span>
+                Enroll in IOE Math Package →
               </Link>
 
               <Link
-                href="/ioe/past-questions"
-                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-black hover:text-black"
+                href="/dashboard"
+                className="inline-flex items-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-black hover:text-black"
               >
-                Practice Questions
+                My IOE Study Dashboard
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Preparation Sections */}
+      {/* Preparation Resources Grid */}
       <section className="mx-auto max-w-7xl px-6 py-12 sm:py-16">
-        <div className="mb-8">
+        <div className="mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-            Preparation Resources
+            Preparation Pillars
           </p>
 
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">
-            Prepare Smarter
+          <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            Complete Entrance Toolset
           </h2>
 
           <p className="mt-2 text-sm text-gray-500">
-            Choose a preparation area and start improving your performance.
+            Dedicated modules designed specifically for engineering entrance competitive mathematics.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sections.map((section) => (
-=======
-      {/* Header */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-16">
-          <h1 className="text-4xl font-bold">
-            IOE
-          </h1>
-
-          <p className="mt-3 text-gray-500">
-            Choose what you want to study...
-          </p>
-        </div>
-      </section>
-
-      {/* Cards */}
-      <section className="mx-auto max-w-7xl px-6 pb-20">
-        <div className="grid gap-6 sm:grid-cols-2">
-
-          {sections.map((section, index) => (
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
             <Link
               key={section.id}
-              href={`/ioe/${section.id}`}
-              className="group"
+              href={section.href}
+              className="group block"
             >
-<<<<<<< HEAD
-              <article className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl border border-gray-200 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-gray-400 hover:shadow-md sm:p-8">
+              <article className="flex h-full flex-col justify-between rounded-2xl border border-gray-200 bg-white p-7 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-gray-400 hover:shadow-md">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold tracking-widest text-gray-400">
+                    <span className="font-mono text-sm font-bold text-blue-600">
                       {section.number}
                     </span>
 
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-500 transition duration-300 group-hover:border-gray-900 group-hover:bg-gray-900 group-hover:text-white">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-sm text-gray-400 transition group-hover:border-black group-hover:bg-black group-hover:text-white">
                       →
                     </span>
                   </div>
 
-                  <p className="mt-10 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  <p className="mt-6 text-xs font-bold uppercase tracking-wider text-gray-400">
                     {section.label}
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                  <h3 className="mt-2 text-xl font-bold tracking-tight text-gray-900">
                     {section.name}
                   </h3>
 
-                  <p className="mt-4 max-w-md text-sm leading-6 text-gray-600">
+                  <p className="mt-3 text-sm leading-6 text-gray-600">
                     {section.description}
                   </p>
                 </div>
 
-                <div className="mt-10 border-t border-gray-100 pt-5">
-                  <span className="text-sm font-semibold text-gray-700 transition group-hover:text-black">
-                    Start Preparing
-                    <span className="ml-2 transition group-hover:ml-3">
-                      →
-                    </span>
+                <div className="mt-8 border-t border-gray-100 pt-4">
+                  <span className="text-xs font-bold text-black transition group-hover:underline">
+                    Access Resource →
                   </span>
                 </div>
               </article>
@@ -167,64 +163,26 @@ export default function IOEPage() {
         <div className="mx-auto max-w-7xl px-6 py-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-gray-400">
-                BTMath IOE Preparation
-              </p>
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
+                All-in-One Package
+              </span>
 
               <h2 className="mt-2 text-2xl font-bold">
-                Everything you need for IOE Mathematics.
+                Everything you need to crack IOE Mathematics.
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                Access structured courses, past questions, short tricks,
-                notes, and practice materials designed for IOE preparation.
+                Enrolling in the IOE Access Group unlocks all past question solutions, short tricks masterclasses, model sets, and discussion groups in one place.
               </p>
             </div>
 
             <Link
               href="/courses?level=ioe"
-              className="inline-flex w-fit items-center rounded-lg bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
+              className="inline-flex w-fit items-center rounded-xl bg-black px-6 py-3.5 text-sm font-bold text-white transition hover:bg-gray-800"
             >
-              Explore IOE Courses
-              <span className="ml-2">→</span>
+              Get Full Access Now →
             </Link>
           </div>
-=======
-              <div className="min-h-[220px] rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-black hover:shadow-lg">
-
-                {/* Number + Arrow */}
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-bold text-white">
-                    {index + 1}
-                  </span>
-
-                  <span className="text-2xl text-gray-400 transition duration-300 group-hover:translate-x-2 group-hover:text-black">
-                    →
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h2 className="mt-10 text-2xl font-bold">
-                  {section.name}
-                </h2>
-
-                {/* Description */}
-                <p className="mt-2 text-gray-500">
-                  {section.description}
-                </p>
-
-                {/* Bottom */}
-                <div className="mt-8 border-t border-gray-200 pt-4">
-                  <span className="text-sm font-medium text-gray-500 group-hover:text-black">
-                    Explore
-                  </span>
-                </div>
-
-              </div>
-            </Link>
-          ))}
-
->>>>>>> c1273ae7b04f422d38c912659f1d5898ddb8ae9a
         </div>
       </section>
 

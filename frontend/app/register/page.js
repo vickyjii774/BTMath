@@ -9,7 +9,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const next = searchParams.get("next") || "/courses";
+  const next = searchParams.get("next") || "/dashboard";
   const course = searchParams.get("course");
 
   const [formData, setFormData] = useState({
@@ -17,11 +17,13 @@ function RegisterForm() {
     full_name: "",
     email: "",
     phone: "",
+    education_level: "plus_two",
     password: "",
     confirm_password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successInfo, setSuccessInfo] = useState(null);
 
   function handleChange(e) {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -36,25 +38,85 @@ function RegisterForm() {
       return;
     }
 
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const data = await registerUser(formData);
 
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      if (course) {
-        router.push(`/purchase/${course}`);
-      } else {
-        router.push(next);
+      if (data?.access) {
+        localStorage.setItem("access_token", data.access);
       }
+      if (data?.refresh) {
+        localStorage.setItem("refresh_token", data.refresh);
+      }
+      if (data?.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      const assignedId = data?.student_id || data?.user?.student_id || data?.user?.profile?.student_id || "BTM-NEW";
+      setSuccessInfo({
+        studentId: assignedId,
+        username: formData.username,
+      });
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (successInfo) {
+    return (
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg border border-gray-100 text-black">
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-700">
+            ✓
+          </div>
+          <h1 className="mt-4 text-2xl font-bold text-gray-900">Registration Complete!</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Welcome to BTMath! Your unique Student ID has been generated:
+          </p>
+
+          <div className="my-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">
+              Official Student ID
+            </p>
+            <p className="mt-1 font-mono text-2xl font-black text-blue-900 tracking-wider">
+              {successInfo.studentId}
+            </p>
+            <p className="mt-2 text-xs text-blue-600">
+              Save this ID! You can use it along with your password to log in.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (course) {
+                  router.push(`/purchase/${course}`);
+                } else {
+                  router.push(next);
+                }
+              }}
+              className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition"
+            >
+              Continue to {course ? "Course Purchase" : "Dashboard"} →
+            </button>
+            <Link
+              href="/login"
+              className="block text-center text-xs text-gray-500 hover:text-black"
+            >
+              Or go to Login Page
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -64,9 +126,7 @@ function RegisterForm() {
           BTMath
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 mt-2">Create Student Account</h1>
-        <p className="mt-1 text-xs text-gray-500">
-          Join thousands of students learning mathematics
-        </p>
+        
       </div>
 
       {error && (
@@ -78,7 +138,7 @@ function RegisterForm() {
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Full Name
+            Full Name *
           </label>
           <input
             name="full_name"
@@ -93,75 +153,93 @@ function RegisterForm() {
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Username
+            Username *
           </label>
           <input
             name="username"
             type="text"
             value={formData.username}
             onChange={handleChange}
-            placeholder="ramesh_math"
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
+            placeholder="Choose a username"
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
             required
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Email Address
+            Email Address *
           </label>
           <input
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="ramesh@example.com"
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
+            placeholder="e.g. ramesh@example.com"
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
             required
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Phone Number (Optional)
+            Phone Number
           </label>
           <input
             name="phone"
             type="tel"
             value={formData.phone}
             onChange={handleChange}
-            placeholder="98XXXXXXXX"
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
+            placeholder="e.g. 9800000000"
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Confirm
-            </label>
-            <input
-              name="confirm_password"
-              type="password"
-              value={formData.confirm_password}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
-              required
-            />
-          </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Current Academic Level
+          </label>
+          <select
+            name="education_level"
+            value={formData.education_level}
+            onChange={handleChange}
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none bg-white"
+          >
+            <option value="plus_two">+2 / Grade 11 & 12</option>
+            <option value="bachelor">Bachelor (BSc / BCA / CSIT / BIM / Engineering)</option>
+            <option value="master">Master Mathematics</option>
+            <option value="ioe">IOE Entrance Preparation</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Password *
+          </label>
+          <input
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Create a strong password"
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Confirm Password *
+          </label>
+          <input
+            name="confirm_password"
+            type="password"
+            value={formData.confirm_password}
+            onChange={handleChange}
+            placeholder="Re-type your password"
+            className="w-full text-black rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-600 focus:outline-none"
+            required
+          />
         </div>
 
         <button
@@ -169,7 +247,7 @@ function RegisterForm() {
           disabled={loading}
           className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50 mt-2"
         >
-          {loading ? "Creating account..." : "Complete Registration"}
+          {loading ? "Generating Student ID..." : "Complete Registration"}
         </button>
       </form>
 
