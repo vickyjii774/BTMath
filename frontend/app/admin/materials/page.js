@@ -33,13 +33,6 @@ async function api(path, options = {}) {
   return data;
 }
 
-function flattenPeriods(rows, depth = 0) {
-  return (rows || []).flatMap((item) => [
-    { ...item, depth },
-    ...flattenPeriods(item.sub_periods, depth + 1),
-  ]);
-}
-
 export default function MaterialsPage() {
   const [sections, setSections] = useState([]);
   const [programs, setPrograms] = useState([]);
