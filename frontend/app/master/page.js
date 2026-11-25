@@ -130,7 +130,7 @@ export default async function MasterPage() {
                             </h4>
 
                             <span className="text-[10px] font-bold uppercase text-gray-400">
-                              {String(period.period_type || "Semester").replace(/[_-]+/g, " ").replace(/\\b\\w/g, (char) => char.toUpperCase())}
+                              {String(period.period_type || "Semester").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
                             </span>
                           </div>
 
