@@ -86,8 +86,7 @@ export default function ContactPage() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-gray-300">
-            Have a question about courses, study materials, or BTMath?
-            We are here to help.
+            {siteContent?.contact_description || "Have a question about courses, study materials, or BTMath? We are here to help."}
           </p>
         </section>
 
@@ -295,6 +294,16 @@ export default function ContactPage() {
                   </div>
 
                 </div>
+
+                {siteContent?.whatsapp_number && (
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-900"><FaWhatsapp /></div>
+                    <div><h3 className="font-semibold">WhatsApp</h3><a className="mt-1 block text-gray-500 hover:text-blue-700" href={`https://wa.me/${siteContent.whatsapp_number.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer">{siteContent.whatsapp_number}</a></div>
+                  </div>
+                )}
+                {siteContent?.support_hours && (
+                  <div><h3 className="font-semibold">Support Hours</h3><p className="mt-1 text-gray-500">{siteContent.support_hours}</p></div>
+                )}
 
               </div>
 
