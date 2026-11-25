@@ -2336,6 +2336,8 @@ class AdminResourceAPIView(APIView):
 
 
 
+            self.normalize_model_fields(model, data)
+
             obj = model.objects.create(**data)
 
 
@@ -2432,6 +2434,8 @@ class AdminResourceAPIView(APIView):
 
         try:
             self.prepare_foreign_keys(model, data)
+
+            self.normalize_model_fields(model, data)
 
             for field_name, value in data.items():
                 if field_name == "id":
@@ -2578,6 +2582,29 @@ class AdminResourceAPIView(APIView):
     # --------------------------------------------------------
 
 
+
+    def normalize_model_fields(self, model, data):
+        """Convert multipart string values into native Django model field values."""
+        for field in model._meta.concrete_fields:
+            if field.name not in data:
+                continue
+
+            value = data[field.name]
+            if value in ("", None, "null") and (field.null or field.blank):
+                if field.null:
+                    data[field.name] = None
+                continue
+
+            if field.get_internal_type() == "BooleanField" and isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {"true", "1", "yes", "on", "t"}:
+                    data[field.name] = True
+                elif normalized in {"false", "0", "no", "off", "f"}:
+                    data[field.name] = False
+                else:
+                    raise ValidationError({
+                        field.name: "Enter a valid true or false value."
+                    })
 
     def prepare_foreign_keys(self, model, data):
 
