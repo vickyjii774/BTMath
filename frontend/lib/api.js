@@ -121,8 +121,12 @@ export async function apiFetch(endpoint, options = {}) {
   // Create headers
   // ----------------------------------------------------------
 
+  const isFormData =
+    typeof FormData !== "undefined" &&
+    options.body instanceof FormData;
+
   const authHeaders = getAuthHeaders(
-    true,
+    !isFormData,
     !isAuthEndpoint
   );
 
@@ -352,6 +356,14 @@ export async function getCurrentUser(token) {
 //
 // The JWT is automatically added by apiFetch().
 // ============================================================
+
+export async function submitPayment(formData) {
+  return apiFetch("/payments/submit/", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 
 export async function createPayment(paymentData, token) {
 
