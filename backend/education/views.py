@@ -1334,13 +1334,17 @@ class AdminDashboardView(APIView):
             Q(profile__isnull=True) | Q(profile__role="student")
         )
 
+        active_purchases = Purchase.objects.filter(is_active=True).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        ).count()
+
         return Response({
             "total_students": student_users.count(),
             "total_courses": Course.objects.count(),
             "total_programs": Program.objects.count(),
             "pending_payments": Payment.objects.filter(status="pending").count(),
-            "active_purchases": Purchase.objects.filter(is_active=True).count(),
-            "approved_purchases": Purchase.objects.filter(is_active=True).count(),
+            "active_purchases": active_purchases,
+            "approved_purchases": active_purchases,
             "total_enrollments": Enrollment.objects.filter(status="active").count(),
             "total_visitors": stats.total_visitors,
             "total_page_views": stats.total_page_views,
