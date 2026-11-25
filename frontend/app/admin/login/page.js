@@ -202,7 +202,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin username"
                   autoComplete="username"
                   disabled={loading}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-1 focus:ring-black disabled:bg-gray-100"
                 />
 
               </div>
@@ -227,7 +227,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin password"
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-1 focus:ring-black disabled:bg-gray-100"
                 />
 
               </div>
@@ -243,7 +243,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+                className="w-full rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 {loading
                   ? "Verifying administrator..."
