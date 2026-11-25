@@ -1470,7 +1470,10 @@ class AdminPaymentApproveAPIView(APIView):
 
     def post(self, request, pk):
         payment = get_object_or_404(Payment, pk=pk)
-        process_payment_decision(payment, "approved", request.user)
+        try:
+            process_payment_decision(payment, "approved", request.user)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             "success": True,
             "message": f"Payment #{payment.id} approved successfully and access granted to student.",
@@ -1484,7 +1487,10 @@ class AdminPaymentRejectAPIView(APIView):
     def post(self, request, pk):
         payment = get_object_or_404(Payment, pk=pk)
         reason = request.data.get("rejection_reason", "").strip() or "Payment could not be verified."
-        process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
+        try:
+            process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             "success": True,
             "message": f"Payment #{payment.id} rejected.",
