@@ -598,6 +598,7 @@ class ForgotPasswordAPIView(APIView):
         # Keep the response identical whether or not the account exists.
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         if user:
+            PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
             token_obj = PasswordResetToken.generate_for_user(user)
             reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token_obj.token}"
             send_mail(
@@ -622,6 +623,7 @@ class ResetPasswordAPIView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "password_reset"
 
+    @transaction.atomic
     def post(self, request):
         token = request.data.get("token", "").strip()
         new_password = request.data.get("new_password", "").strip()
@@ -633,7 +635,7 @@ class ResetPasswordAPIView(APIView):
         if confirm_password and new_password != confirm_password:
             return Response({"error": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
 
-        token_obj = PasswordResetToken.objects.filter(
+        token_obj = PasswordResetToken.objects.select_for_update().filter(
             token=token,
             is_used=False,
             expires_at__gt=timezone.now()
@@ -968,7 +970,17 @@ class PaymentSubmitAPIView(APIView):
                 package_levels.append("plus2")
             elif access_group.slug == "plus2":
                 package_levels.append("plus_two")
-            package = CourseAccessPackage.objects.filter(level__in=package_levels, is_active=True).first()
+            package_filter = Q(level__iexact=access_group.slug)
+            for alias in package_levels[1:]:
+                package_filter |= Q(level__iexact=alias)
+            package = CourseAccessPackage.objects.filter(package_filter, is_active=True).first()
+            active_group_access = UserAccessGroup.objects.filter(
+                user=request.user,
+                access_group=access_group,
+                is_active=True,
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).exists()
+            if active_group_access:
+                return Response({"error": "You already have access to this access group."}, status=status.HTTP_400_BAD_REQUEST)
             if not package:
                 return Response(
                     {"error": "No active price package is configured for this access group."},
@@ -1127,6 +1139,10 @@ from django.shortcuts import get_object_or_404
 
 @transaction.atomic
 def process_payment_decision(payment, decision, admin_user, rejection_reason=""):
+    """
+    Apply a payment decision once, while holding a row lock to prevent
+    duplicate approval/rejection side effects under concurrent requests.
+    """
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
     already_processed = payment.status == decision and payment.verified_at and (
         decision == "rejected" or Purchase.objects.filter(payment=payment).exists()
@@ -1135,20 +1151,6 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
         return payment
     if payment.status != "pending" and payment.status != decision:
         raise ValueError("Only pending payments can be approved or rejected.")
-    """
-    Handles payment approval or rejection:
-    1. Sets status ('approved' or 'rejected')
-    2. Sets verified_by & verified_at
-    3. If approved:
-       - Assigns AccessGroup to student (UserAccessGroup)
-       - Creates/activates Purchase entry
-       - Ensures direct Course Enrollment is active
-       - Falls back to UserSectionAccess for legacy compatibility
-       - Creates AuditLog entry
-    4. If rejected:
-       - Sets rejection_reason
-       - Creates AuditLog entry
-    """
     if decision == "approved":
         payment.status = "approved"
         payment.verified_by = admin_user
@@ -1471,7 +1473,7 @@ class AdminPaymentApproveAPIView(APIView):
     def post(self, request, pk):
         payment = get_object_or_404(Payment, pk=pk)
         try:
-            process_payment_decision(payment, "approved", request.user)
+            payment = process_payment_decision(payment, "approved", request.user)
         except ValueError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
@@ -1488,7 +1490,7 @@ class AdminPaymentRejectAPIView(APIView):
         payment = get_object_or_404(Payment, pk=pk)
         reason = request.data.get("rejection_reason", "").strip() or "Payment could not be verified."
         try:
-            process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
+            payment = process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
         except ValueError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
