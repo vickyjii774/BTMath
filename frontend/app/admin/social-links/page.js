@@ -1,13 +1,4 @@
 "use client";
-
-import AdminResourcePage from "../../../components/AdminResourcePage";
-
-export default function SocialLinksAdminPage() {
-  return (
-    <AdminResourcePage
-      resource="social-links"
-      title="Social Media Links"
-      description="Configure social media channels (YouTube, Facebook, TikTok, WhatsApp, Instagram) displayed across the website."
-    />
-  );
-}
+import AdminContentManager from "../../../components/AdminContentManager";
+const fields=[{name:"platform",label:"Platform",type:"select",defaultValue:"facebook",options:["facebook","instagram","youtube","tiktok","linkedin","twitter","telegram","whatsapp","other"].map(v=>({value:v,label:v[0].toUpperCase()+v.slice(1)}))},{name:"title",label:"Display name",type:"text"},{name:"url",label:"Profile URL",type:"url",required:true},{name:"icon",label:"Icon identifier (optional)",type:"text"},{name:"order",label:"Display order",type:"number",defaultValue:1},{name:"is_active",label:"Visible on website",type:"checkbox",defaultValue:true}];
+export default function SocialLinksPage(){return <AdminContentManager resource="social-links" title="Social Media Links" description="Add, edit, reorder or hide social media links displayed on the BTMath website." fields={fields}/>;}
