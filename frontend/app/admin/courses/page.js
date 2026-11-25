@@ -261,8 +261,7 @@ export default function AdminCoursesPage() {
           course.program_name || ""
         )
           .toLowerCase()
-          .includes(value) ||
-
+          .includes(value)
       );
     });
   }, [courses, search]);
