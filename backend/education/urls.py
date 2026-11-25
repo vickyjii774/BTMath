@@ -681,6 +681,38 @@ urlpatterns = [
     ),
 
     # ------------------------------------------------------------
+    # WEBSITE CONTENT & TEAM
+    # ------------------------------------------------------------
+
+    path(
+        "admin/site-content/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "site-content"},
+        name="admin-site-content",
+    ),
+
+    path(
+        "admin/site-content/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "site-content"},
+        name="admin-site-content-detail",
+    ),
+
+    path(
+        "admin/team-members/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "team-members"},
+        name="admin-team-members",
+    ),
+
+    path(
+        "admin/team-members/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "team-members"},
+        name="admin-team-member-detail",
+    ),
+
+    # ------------------------------------------------------------
     # AUDIT LOGS
     # ------------------------------------------------------------
 
