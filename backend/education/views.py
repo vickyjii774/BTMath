@@ -1111,7 +1111,7 @@ class AdminContactReplyAPIView(APIView):
         try:
             sent = send_mail(
                 f"Re: {contact.subject or 'Your inquiry to BTMath'}",
-                f"Hello {contact.name or 'there'},\\n\\n{reply}\\n\\nRegards,\\nBTMath Support",
+                f"Hello {contact.name or 'there'},\n\n{reply}\n\nRegards,\nBTMath Support",
                 settings.DEFAULT_FROM_EMAIL,
                 [contact.email],
                 fail_silently=False,
