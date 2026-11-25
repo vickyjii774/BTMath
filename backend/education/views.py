@@ -605,8 +605,8 @@ class ForgotPasswordAPIView(APIView):
             send_mail(
                 subject="Reset your BTMath password",
                 message=(
-                    f"Hello {user.first_name or user.username},\\n\\n"
-                    f"Use this link to reset your BTMath password:\\n{reset_url}\\n\\n"
+                    f"Hello {user.first_name or user.username},\n\n"
+                    f"Use this link to reset your BTMath password:\n{reset_url}\n\n"
                     "This link expires in 24 hours. If you did not request this, ignore this email."
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
