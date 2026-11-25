@@ -2,6 +2,7 @@ import Link from "next/link";
 import Navbar from "../../../components/Navbar";
 import Footer from "../../../components/Footer";
 import { getBachelorPrograms } from "../../../lib/api";
+import { formatAcademicPeriodName } from "../../../lib/academic";
 
 export default async function BachelorProgramPage({ params }) {
   const { id } = await params;
@@ -91,7 +92,7 @@ export default async function BachelorProgramPage({ params }) {
 
                 {/* Semester Name */}
                 <h3 className="mt-8 text-xl font-bold">
-                  {semester.name}
+                  {formatAcademicPeriodName(semester, index)}
                 </h3>
 
                 {/* Course Count */}
