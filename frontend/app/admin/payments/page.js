@@ -129,7 +129,7 @@ export default function AdminPaymentsPage() {
       const emailStr = String(p.user_email || p.email || p.user?.email || "").toLowerCase();
       const studentIdStr = String(p.student_id || "").toLowerCase();
       const codeStr = String(p.transaction_code || "").toLowerCase();
-      const courseStr = String(p.course_title || p.course?.title || p.course || "").toLowerCase();
+      const courseStr = String(p.course_title || p.course_name || p.course?.title || p.course || "").toLowerCase();
       const methodStr = String(p.payment_method || "").toLowerCase();
 
       return (
@@ -357,7 +357,7 @@ export default function AdminPaymentsPage() {
                         {/* Course */}
                         <td className="px-6 py-4">
                           <p className="font-semibold text-gray-900">
-                            {p.course_title || p.course?.title || (p.course ? `Course #${p.course}` : "Course not specified")}
+                            {p.course_title || p.course_name || p.course?.title || (p.course ? `Course #${p.course}` : "Course not specified")}
                           </p>
                           <p className="mt-1 font-mono text-[11px] text-gray-500">
                             Course ID: {p.course?.id || p.course || "Unavailable"}
