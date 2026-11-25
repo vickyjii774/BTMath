@@ -294,32 +294,18 @@ export default function AdminPage() {
     },
 
     {
-      title: "Courses",
+      title: "Course Management",
       description:
-        "Create, edit and publish mathematics courses.",
+        "Create and manage courses by selecting an academic section, program and grade or semester.",
       href: "/admin/courses",
       icon: "📚",
     },
     {
-      title: "Chapters",
+      title: "Chapter Materials & Notes",
       description:
-        "Create and organize chapters within courses.",
-      href: "/admin/chapters",
-      icon: "🗂️",
-    },
-    {
-      title: "Lessons",
-      description:
-        "Manage video lessons, YouTube lecture URLs and lesson content.",
-      href: "/admin/lessons",
-      icon: "🎥",
-    },
-    {
-      title: "Materials & Notes",
-      description:
-        "Upload PDFs, DOCX, past questions, and formula sheets.",
+        "Open a course, manage its chapters, and add PDFs, video links, study notes and past questions.",
       href: "/admin/materials",
-      icon: "📄",
+      icon: "🗂️",
     },
     {
       title: "Contact Inquiries",
