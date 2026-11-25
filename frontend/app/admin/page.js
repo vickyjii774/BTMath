@@ -294,16 +294,23 @@ export default function AdminPage() {
     },
 
     {
+      title: "Academic Programs",
+      description:
+        "First, create academic sections, programs and their grades, years, semesters or terms.",
+      href: "/admin/programs",
+      icon: "🎓",
+    },
+    {
       title: "Course Management",
       description:
-        "Create and manage courses by selecting an academic section, program and grade or semester.",
+        "Next, create the mathematics courses, assign each to its academic program and period, and manage pricing and access.",
       href: "/admin/courses",
       icon: "📚",
     },
     {
       title: "Chapter Materials & Notes",
       description:
-        "Open a course, manage its chapters, and add PDFs, video links, study notes and past questions.",
+        "Finally, open each course to add chapters, video lessons, PDFs, study notes and practice resources.",
       href: "/admin/materials",
       icon: "🗂️",
     },
@@ -316,15 +323,6 @@ export default function AdminPage() {
       badge: stats.unread_contacts > 0 ? `${stats.unread_contacts} New` : null,
     },
    
-  
-    {
-      title: "Academic Programs",
-      description:
-        "Manage academic programs (+2, BSc, CSIT, BCA, BIM, Master, IOE).",
-      href: "/admin/programs",
-      icon: "🎓",
-    },
-  
   
   ];
 
