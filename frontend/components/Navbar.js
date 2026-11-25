@@ -4,12 +4,27 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getCategories } from "../lib/api";
 
 export default function Navbar() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    getCategories()
+      .then((data) => {
+        if (active) setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => console.error("ACADEMIC NAVIGATION ERROR:", error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -42,7 +57,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-2xl font-bold"
+          className="text-2xl font-extrabold tracking-tight text-gray-950"
         >
           BTMath
         </Link>
@@ -73,36 +88,23 @@ export default function Navbar() {
               <div className="absolute right-0 z-50 mt-3 w-44 rounded-lg border bg-white py-2 shadow-lg">
 
                 <Link
-                  href="/plus-two"
-                  className="block px-4 py-4 hover:bg-gray-100"
+                  href="/courses"
+                  className="block px-4 py-2 font-semibold text-blue-700 hover:bg-blue-50"
                   onClick={() => setOpen(false)}
                 >
-                  +2
+                  All Courses
                 </Link>
 
-                <Link
-                  href="/bachelor"
-                  className="block px-4 py-2 hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  Bachelor
-                </Link>
-
-                <Link
-                  href="/master"
-                  className="block px-4 py-2 hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  Master
-                </Link>
-
-                <Link
-                  href="/ioe"
-                  className="block px-4 py-2 hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  IOE
-                </Link>
+                {categories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/courses?level=${encodeURIComponent(category.level)}`}
+                    className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    onClick={() => setOpen(false)}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
 
               </div>
             )}
@@ -157,7 +159,7 @@ export default function Navbar() {
               {/* Register */}
               <Link
                 href="/register"
-                className="rounded-lg bg-black px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-gray-800"
+                className="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-blue-800"
               >
                 Register
               </Link>
