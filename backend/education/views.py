@@ -2074,9 +2074,15 @@ class AdminResourceAPIView(APIView):
 
                 )
 
+                # Keep a consistent title key for payment admin records.
+                if obj.__class__.__name__ == "Payment":
+                    data["course_title"] = data["course_name"]
+
             except Exception:
 
                 data["course_name"] = None
+                if obj.__class__.__name__ == "Payment":
+                    data["course_title"] = None
 
 
 
