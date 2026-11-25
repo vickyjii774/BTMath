@@ -108,6 +108,8 @@ export default function Navbar() {
             )}
           </div>
 
+          <Link href="/about" className="transition hover:text-blue-600">About</Link>
+          <Link href="/team" className="transition hover:text-blue-600">Our Team</Link>
           {/* Contact */}
           <Link
             href="/contact"
