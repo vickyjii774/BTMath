@@ -11,6 +11,7 @@ const EMPTY_FORM = {
   title: "",
   slug: "",
   description: "",
+  category: "",
   program: "",
   academic_period: "",
   subject: "",
@@ -25,6 +26,7 @@ export default function AdminCoursesPage() {
   const router = useRouter();
 
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -144,6 +146,11 @@ export default function AdminCoursesPage() {
     );
   }
 
+  async function loadCategories() {
+    const data = await apiFetch("/admin/categories/");
+    setCategories(Array.isArray(data) ? data : []);
+  }
+
   async function loadPrograms() {
     const data = await apiFetch(
       "/admin/programs/"
@@ -187,6 +194,7 @@ export default function AdminCoursesPage() {
     try {
       await Promise.all([
         loadCourses(),
+        loadCategories(),
         loadPrograms(),
         loadPeriods(),
         loadSubjects(),
@@ -210,6 +218,11 @@ export default function AdminCoursesPage() {
   // ============================================================
   // FILTERED OPTIONS
   // ============================================================
+
+  const filteredPrograms = useMemo(() => {
+    if (!form.category) return programs;
+    return programs.filter((program) => String(program.category) === String(form.category));
+  }, [programs, form.category]);
 
   const selectedProgram = useMemo(
     () =>
@@ -323,6 +336,10 @@ export default function AdminCoursesPage() {
           : value,
     }));
 
+    if (name === "category") {
+      setForm((previous) => ({ ...previous, program: "", academic_period: "", subject: "" }));
+    }
+
     if (name === "program") {
       setForm((previous) => ({
         ...previous,
@@ -356,7 +373,9 @@ export default function AdminCoursesPage() {
   function openEdit(course) {
     setEditingId(course.id);
 
+    const courseProgram = programs.find((item) => String(item.id) === String(course.program));
     setForm({
+      category: courseProgram?.category ? String(courseProgram.category) : "",
       title: course.title || "",
       slug: course.slug || "",
       description:
@@ -780,15 +799,23 @@ export default function AdminCoursesPage() {
                 <div className="mt-4 grid gap-5 md:grid-cols-3">
 
                   <Select
+                    label="Academic Section"
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    options={categories}
+                    placeholder="Select section"
+                    getLabel={(item) => item.name}
+                  />
+
+                  <Select
                     label="Program"
                     name="program"
                     value={form.program}
                     onChange={handleChange}
-                    options={programs}
-                    placeholder="Select program"
-                    getLabel={(item) =>
-                      item.name
-                    }
+                    options={filteredPrograms}
+                    placeholder={form.category ? "Select program" : "Select section first"}
+                    getLabel={(item) => item.name}
                   />
 
                   <Select
