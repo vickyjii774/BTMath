@@ -163,28 +163,11 @@ export async function apiFetch(endpoint, options = {}) {
     const text = await response.text();
 
 
-    console.log("BTMath API RESPONSE");
-    console.log("URL:", url);
-    console.log("STATUS:", response.status);
-    console.log("STATUS TEXT:", response.statusText);
-    console.log("OK:", response.ok);
-    console.log("BODY:", text);
-
-
     // --------------------------------------------------------
     // Handle API errors
     // --------------------------------------------------------
 
     if (!response.ok) {
-
-      console.error("=================================");
-      console.error("BTMath API ERROR");
-      console.error("URL:", url);
-      console.error("STATUS:", response.status);
-      console.error("STATUS TEXT:", response.statusText);
-      console.error("BODY:", text);
-      console.error("=================================");
-
 
       throw new Error(
         `BTMath API ${response.status} ${response.statusText}${
