@@ -37,8 +37,8 @@ export default function CourseAction({ slug, isEnrolled, isFree = false }) {
       onClick={handleClick}
       className={`rounded-lg px-4 py-2 text-xs font-bold transition shadow-sm ${
         isEnrolled
-          ? "bg-black text-white hover:bg-gray-800"
-          : "bg-black text-white hover:bg-gray-800"
+          ? "bg-blue-700 text-white hover:bg-blue-800"
+          : "bg-blue-700 text-white hover:bg-blue-800"
       }`}
     >
       {isEnrolled ? "Study Now →" : isFree ? "View Course →" : "Purchase Course →"}
