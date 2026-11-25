@@ -13,13 +13,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [admin, setAdmin] = useState(null);
-  const [stats, setStats] = useState({
-    students: 0,
-    courses: 0,
-    enrollments: 0,
-    pending_requests: 0,
-    payments: 0,
-  });
+  const [stats, setStats] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -183,17 +177,15 @@ export default function AdminPage() {
        *   payments: 8
        * }
        */
+      // Keep the dashboard aligned with the protected admin API response.
+      // Null values remain unavailable instead of being shown as misleading zeroes.
       setStats({
-        students: data?.students ?? 0,
-        courses: data?.courses ?? 0,
-        pending_requests: data?.pending_requests ?? 0,
-        enrollments: data?.enrollments ?? 0,
-        payments: data?.payments ?? 0,
-        purchases: data?.purchases ?? 0,
-        pending_payments: data?.pending_payments ?? 0,
-        total_visitors: data?.total_visitors ?? 0,
-        total_page_views: data?.total_page_views ?? 0,
-        unread_contacts: data?.unread_contacts ?? 0,
+        total_visitors: data?.total_visitors ?? null,
+        students: data?.total_students ?? null,
+        courses: data?.total_courses ?? null,
+        purchases: data?.active_purchases ?? data?.approved_purchases ?? null,
+        pending_payments: data?.pending_payments ?? null,
+        unread_contacts: data?.unread_contacts ?? null,
       });
 
     } catch (err) {
@@ -283,7 +275,7 @@ export default function AdminPage() {
         "Approve manual eSewa/bank payments with receipt screenshots.",
       href: "/admin/payments",
       icon: "💳",
-      badge: stats.pending_payments > 0 ? `${stats.pending_payments} Pending` : null,
+      badge: (stats?.pending_payments ?? 0) > 0 ? `${stats.pending_payments} Pending` : null,
     },
     {
       title: "Access Groups",
@@ -320,7 +312,7 @@ export default function AdminPage() {
         "Review incoming messages and student questions.",
       href: "/admin/contacts",
       icon: "📬",
-      badge: stats.unread_contacts > 0 ? `${stats.unread_contacts} New` : null,
+      badge: (stats?.unread_contacts ?? 0) > 0 ? `${stats.unread_contacts} New` : null,
     },
     {
       title: "About & Contact Details",
@@ -418,37 +410,37 @@ export default function AdminPage() {
         <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <StatCard
             title="Total Visitors"
-            value={stats.total_visitors || stats.total_page_views || 0}
+            value={stats?.total_visitors ?? "—"}
             icon="👁️"
           />
 
           <StatCard
             title="Registered Students"
-            value={stats.students}
+            value={stats?.students ?? "—"}
             icon="👥"
           />
 
           <StatCard
             title="Total Courses"
-            value={stats.courses}
+            value={stats?.courses ?? "—"}
             icon="📚"
           />
 
           <StatCard
             title="Active Purchases"
-            value={stats.purchases || stats.enrollments || 0}
+            value={stats?.purchases ?? "—"}
             icon="🛍️"
           />
 
           <StatCard
             title="Pending Payments"
-            value={stats.pending_payments || 0}
+            value={stats?.pending_payments ?? "—"}
             icon="💳"
           />
 
           <StatCard
             title="New Inquiries"
-            value={stats.unread_contacts || 0}
+            value={stats?.unread_contacts ?? "—"}
             icon="📬"
           />
         </section>
