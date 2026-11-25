@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import CourseCard from "../../components/CourseCard";
 import { getMasterPrograms, getCourses } from "../../lib/api";
+import { deduplicatePrograms, formatAcademicPeriodName } from "../../lib/academic";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function MasterPage() {
       getCourses({ level: "master" }),
     ]);
 
-    programs = programData || [];
+    programs = deduplicatePrograms(programData || []);
     courses = courseData || [];
   } catch (error) {
     console.error("Failed to load Master data:", error);
@@ -118,18 +119,18 @@ export default async function MasterPage() {
                   {/* Academic Periods */}
                   {periods.length > 0 && (
                     <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      {periods.map((period) => (
+                      {periods.map((period, index) => (
                         <div
                           key={period.id}
                           className="rounded-xl border border-gray-200 bg-gray-50/70 p-4"
                         >
                           <div className="flex items-center justify-between">
                             <h4 className="text-sm font-bold text-gray-900">
-                              {period.name}
+                              {formatAcademicPeriodName(period, index)}
                             </h4>
 
                             <span className="text-[10px] font-bold uppercase text-gray-400">
-                              {period.period_type || "Semester"}
+                              {String(period.period_type || "Semester").replace(/[_-]+/g, " ").replace(/\\b\\w/g, (char) => char.toUpperCase())}
                             </span>
                           </div>
 
