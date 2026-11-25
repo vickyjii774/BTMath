@@ -615,3 +615,35 @@ class AcademicAdminHierarchyTests(TestCase):
         self.assertTrue(
             any(item["id"] == section_id for item in sections_response.data)
         )
+        
+    def test_staff_admin_can_manage_operations_but_not_academic_content(self):
+        staff_admin = User.objects.create_user(
+            username="operations-admin",
+            email="operations-admin@example.com",
+            password="OperationsPassword123!",
+            is_staff=True,
+            is_superuser=False,
+        )
+        self.client.force_authenticate(user=staff_admin)
+
+        courses_response = self.client.get("/api/admin/courses/")
+        categories_response = self.client.get("/api/admin/categories/")
+        payments_response = self.client.get("/api/admin/payments/")
+        contacts_response = self.client.get("/api/admin/contacts/")
+
+        self.assertEqual(courses_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(categories_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(payments_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(contacts_response.status_code, status.HTTP_200_OK)
+
+    def test_superuser_can_manage_academic_content(self):
+        superadmin = User.objects.create_superuser(
+            username="academic-superadmin",
+            email="academic-superadmin@example.com",
+            password="AcademicPassword123!",
+        )
+        self.client.force_authenticate(user=superadmin)
+
+        response = self.client.get("/api/admin/courses/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
