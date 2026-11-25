@@ -546,9 +546,9 @@ class AcademicAdminHierarchyTests(TestCase):
         section_response = self.client.post(
             "/api/admin/categories/",
             {
-                "name": "School Level",
-                "level": "school",
-                "description": "School mathematics programs",
+                "name": "Foundation",
+                "level": "foundation",
+                "description": "Additional academic section",
             },
             format="json",
         )
