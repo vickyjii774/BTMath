@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "../../../lib/api";
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api").replace(/\/$/, "");
+
 export default function AdminLoginPage() {
   const router = useRouter();
 
@@ -33,7 +35,6 @@ export default function AdminLoginPage() {
         password
       );
 
-      console.log("ADMIN LOGIN RESPONSE:", data);
 
       if (!data?.access) {
         throw new Error(
@@ -73,7 +74,7 @@ export default function AdminLoginPage() {
       // 5. Verify administrator access
       // --------------------------------
       const adminResponse = await fetch(
-        "http://127.0.0.1:8000/api/admin/dashboard/",
+        `${API_URL}/admin/dashboard/`,
         {
           method: "GET",
           headers: {
@@ -81,11 +82,6 @@ export default function AdminLoginPage() {
             "Content-Type": "application/json",
           },
         }
-      );
-
-      console.log(
-        "ADMIN API STATUS:",
-        adminResponse.status
       );
 
       let adminData = {};
@@ -96,19 +92,10 @@ export default function AdminLoginPage() {
         adminData = {};
       }
 
-      console.log(
-        "ADMIN API RESPONSE:",
-        adminData
-      );
-
       // --------------------------------
       // 6. Admin verified
       // --------------------------------
       if (adminResponse.ok) {
-        console.log(
-          "ADMIN ACCESS GRANTED"
-        );
-
         router.replace("/admin");
         return;
       }
