@@ -530,3 +530,76 @@ class BTMathBackendTests(TestCase):
             expires_at=timezone.now() - timezone.timedelta(days=1),
         )
         self.assertFalse(has_course_access(student, self.course_math11))
+
+
+class AcademicAdminHierarchyTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username="academic-admin",
+            email="academic-admin@example.com",
+            password="TestAdminPassword123!",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
+    def test_admin_can_create_sections_programs_and_nested_periods(self):
+        section_response = self.client.post(
+            "/api/admin/categories/",
+            {
+                "name": "School Level",
+                "level": "school",
+                "description": "School mathematics programs",
+            },
+            format="json",
+        )
+        self.assertEqual(section_response.status_code, status.HTTP_201_CREATED)
+        section_id = section_response.data["id"]
+
+        program_response = self.client.post(
+            "/api/admin/programs/",
+            {
+                "category": section_id,
+                "name": "Secondary Mathematics",
+                "description": "",
+                "duration_info": "2 years",
+            },
+            format="json",
+        )
+        self.assertEqual(program_response.status_code, status.HTTP_201_CREATED)
+        program_id = program_response.data["id"]
+
+        grade_response = self.client.post(
+            "/api/admin/academic-periods/",
+            {
+                "program": program_id,
+                "parent": None,
+                "name": "Grade 11",
+                "period_type": "grade",
+                "order": 1,
+                "description": "",
+            },
+            format="json",
+        )
+        self.assertEqual(grade_response.status_code, status.HTTP_201_CREATED)
+        grade_id = grade_response.data["id"]
+
+        semester_response = self.client.post(
+            "/api/admin/academic-periods/",
+            {
+                "program": program_id,
+                "parent": grade_id,
+                "name": "Term 1",
+                "period_type": "term",
+                "order": 1,
+                "description": "",
+            },
+            format="json",
+        )
+        self.assertEqual(semester_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(semester_response.data["parent"], grade_id)
+
+        sections_response = self.client.get("/api/admin/categories/")
+        self.assertEqual(sections_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            any(item["id"] == section_id for item in sections_response.data)
+        )
