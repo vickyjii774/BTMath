@@ -727,56 +727,52 @@ class MeAPIView(APIView):
 
 
 class UpdateProfileAPIView(APIView):
+    """Allow an authenticated student to update safe personal profile fields."""
 
     permission_classes = [IsAuthenticated]
-
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-
-
     def put(self, request):
+        from django.utils.dateparse import parse_date
 
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-
-
+        user = request.user
 
         full_name = request.data.get("full_name")
-
         if full_name is not None:
-
+            full_name = str(full_name).strip()
+            if not full_name:
+                return Response({"error": "Full name cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
             profile.full_name = full_name
+            parts = full_name.split(" ", 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ""
 
-            request.user.first_name = full_name
+        if "email" in request.data:
+            email = str(request.data.get("email", "")).strip().lower()
+            if not email:
+                return Response({"error": "Email address is required."}, status=status.HTTP_400_BAD_REQUEST)
+            if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+                return Response({"error": "This email address is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            user.email = email
 
-            request.user.save()
+        for field in ("phone", "bio", "education_level", "address"):
+            if field in request.data:
+                setattr(profile, field, str(request.data.get(field) or "").strip())
 
-
-
-        phone = request.data.get("phone")
-
-        if phone is not None:
-
-            profile.phone = phone
-
-
-
-        bio = request.data.get("bio")
-
-        if bio is not None:
-
-            profile.bio = bio
-
-
+        if "date_of_birth" in request.data:
+            raw_date = request.data.get("date_of_birth")
+            parsed_date = parse_date(str(raw_date)) if raw_date else None
+            if raw_date and not parsed_date:
+                return Response({"error": "Enter a valid date of birth."}, status=status.HTTP_400_BAD_REQUEST)
+            profile.date_of_birth = parsed_date
 
         if "profile_picture" in request.FILES:
-
             profile.profile_picture = request.FILES["profile_picture"]
 
-
-
+        user.save(update_fields=["first_name", "last_name", "email"])
         profile.save()
-
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(user).data)
 
 
 
