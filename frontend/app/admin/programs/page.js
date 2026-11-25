@@ -246,11 +246,11 @@ export default function ProgramsPage() {
                 <div className="flex gap-2 md:col-span-3"><button disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : programForm.id ? "Save changes" : "Create program"}</button><button type="button" onClick={() => setProgramForm(null)} className="rounded-lg border px-4 py-2 text-sm font-semibold">Cancel</button></div>
               </form>}
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="mt-5 grid items-start gap-4 lg:grid-cols-2">
                 {sectionPrograms.map((program) => {
                   const expanded = Number(expandedProgramId) === Number(program.id);
                   const rootCount = periodsFor(program.id).length;
-                  return <article key={program.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  return <article key={program.id} className="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                     <button onClick={() => setExpandedProgramId(expanded ? null : program.id)} className="flex w-full items-center justify-between gap-4 p-5 text-left">
                       <div><div className="text-lg font-bold">{program.name}</div><p className="mt-1 text-sm text-slate-500">{program.duration_info || "Flexible duration"} · {rootCount} top-level periods</p></div>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{expanded ? "Close" : "Manage"} ↓</span>
