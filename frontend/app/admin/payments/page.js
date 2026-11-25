@@ -126,12 +126,16 @@ export default function AdminPaymentsPage() {
       if (!query) return true;
 
       const userStr = String(p.username || p.user_username || p.user?.username || p.user || "").toLowerCase();
+      const emailStr = String(p.user_email || p.email || p.user?.email || "").toLowerCase();
+      const studentIdStr = String(p.student_id || "").toLowerCase();
       const codeStr = String(p.transaction_code || "").toLowerCase();
       const courseStr = String(p.course_title || p.course?.title || p.course || "").toLowerCase();
       const methodStr = String(p.payment_method || "").toLowerCase();
 
       return (
         userStr.includes(query) ||
+        emailStr.includes(query) ||
+        studentIdStr.includes(query) ||
         codeStr.includes(query) ||
         courseStr.includes(query) ||
         methodStr.includes(query)
@@ -340,7 +344,10 @@ export default function AdminPaymentsPage() {
                             {p.username || p.user_username || p.user?.username || `User #${p.user}`}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {p.email || p.user?.email || "—"}
+                            {p.user_email || p.email || p.user?.email || "—"}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] text-blue-700">
+                            {p.student_id || (p.user ? "BTM-" + String(p.user).padStart(6, "0") : "Student ID unavailable")}
                           </p>
                         </td>
 
