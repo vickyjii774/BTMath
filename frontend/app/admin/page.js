@@ -336,10 +336,23 @@ export default function AdminPage() {
   
   ];
 
-  const academicItems = managementItems.filter((item) =>
+  const isSuperAdmin = admin?.is_superuser === true;
+  const superAdminOnlyPaths = [
+    "/admin/access-groups",
+    "/admin/programs",
+    "/admin/courses",
+    "/admin/materials",
+    "/admin/site-content",
+    "/admin/social-links",
+    "/admin/team",
+  ];
+  const visibleManagementItems = managementItems.filter(
+    (item) => isSuperAdmin || !superAdminOnlyPaths.includes(item.href)
+  );
+  const academicItems = visibleManagementItems.filter((item) =>
     ["/admin/programs", "/admin/courses", "/admin/materials"].includes(item.href)
   );
-  const operationsItems = managementItems.filter((item) => !academicItems.includes(item));
+  const operationsItems = visibleManagementItems.filter((item) => !academicItems.includes(item));
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
@@ -356,8 +369,8 @@ export default function AdminPage() {
               BTMath
             </span>
 
-            <span className="rounded-md bg-black px-2 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              Admin
+            <span className="rounded-md bg-blue-700 px-2 py-1 text-xs font-bold uppercase tracking-wider text-white">
+              {isSuperAdmin ? "Superadmin" : "Admin"}
             </span>
           </Link>
 
@@ -446,9 +459,10 @@ export default function AdminPage() {
         </section>
 
         {/* Management */}
+        {isSuperAdmin && (
         <section>
           <div className="mb-6">
-            <h2 className="text-xl font-bold">
+            <h2 className="text-xl font-bold text-gray-950">
               Academic Management
             </h2>
 
@@ -465,7 +479,7 @@ export default function AdminPage() {
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md"
               >
                 <div className="flex items-start justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-xl">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">
                     {item.icon}
                   </span>
 
@@ -475,7 +489,7 @@ export default function AdminPage() {
                         {item.badge}
                       </span>
                     )}
-                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-blue-700">
                       →
                     </span>
                   </div>
@@ -489,7 +503,7 @@ export default function AdminPage() {
                   {item.description}
                 </p>
 
-                <div className="mt-5 text-sm font-semibold text-black">
+                <div className="mt-5 text-sm font-semibold text-blue-700">
                   Manage →
                 </div>
 
@@ -499,6 +513,7 @@ export default function AdminPage() {
           </div>
 
         </section>
+        )}
 
         <section className="mt-12">
           <div className="mb-6">
@@ -509,15 +524,15 @@ export default function AdminPage() {
             {operationsItems.map((item) => (
               <Link key={item.href} href={item.href} className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md">
                 <div className="flex items-start justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-xl">{item.icon}</span>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">{item.icon}</span>
                   <div className="flex items-center gap-2">
                     {item.badge && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">{item.badge}</span>}
-                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">→</span>
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-blue-700">→</span>
                   </div>
                 </div>
                 <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
-                <div className="mt-5 text-sm font-semibold text-black">Manage →</div>
+                <div className="mt-5 text-sm font-semibold text-blue-700">Manage →</div>
               </Link>
             ))}
           </div>
