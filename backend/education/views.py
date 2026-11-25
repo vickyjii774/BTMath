@@ -6,6 +6,11 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.conf import settings
+from django.core.mail import send_mail
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.throttling import ScopedRateThrottle
 from django.db.models import Q, Count
 from django.utils import timezone
 from decimal import Decimal
@@ -55,7 +60,9 @@ from .models import (
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
+    CourseAccessPackage,
 )
+from .access import has_course_access
 from .serializers import (
     UserSerializer,
     UserProfileSerializer,
@@ -308,13 +315,15 @@ class ToggleMaterialProgressAPIView(APIView):
 
         try:
 
-            material = Material.objects.get(pk=material_id)
+            material = Material.objects.select_related("course", "chapter__course").get(pk=material_id)
 
         except Material.DoesNotExist:
 
             return Response({"error": "Material not found"}, status=status.HTTP_404_NOT_FOUND)
 
-
+        course = material.course or (material.chapter.course if material.chapter_id else None)
+        if material.access_type not in ("free", "preview") and not has_course_access(request.user, course):
+            return Response({"error": "You do not have access to this material."}, status=status.HTTP_403_FORBIDDEN)
 
         progress, created = MaterialProgress.objects.get_or_create(
 
@@ -578,28 +587,41 @@ class LoginAPIView(APIView):
         )
 
 class ForgotPasswordAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
     def post(self, request):
-        email = request.data.get("email", "").strip()
+        email = str(request.data.get("email", "")).strip()
         if not email:
             return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response({
-                "success": True,
-                "message": "If an account with this email exists, password reset instructions have been issued."
-            })
+        # Keep the response identical whether or not the account exists.
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            token_obj = PasswordResetToken.generate_for_user(user)
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token_obj.token}"
+            send_mail(
+                subject="Reset your BTMath password",
+                message=(
+                    f"Hello {user.first_name or user.username},\\n\\n"
+                    f"Use this link to reset your BTMath password:\\n{reset_url}\\n\\n"
+                    "This link expires in 24 hours. If you did not request this, ignore this email."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
 
-        token_obj = PasswordResetToken.generate_for_user(user)
         return Response({
             "success": True,
-            "message": "Password reset token generated.",
-            "dev_reset_token": token_obj.token,
-            "dev_reset_url": f"/reset-password?token={token_obj.token}"
+            "message": "If an account with this email exists, password reset instructions have been issued."
         })
 
 
 class ResetPasswordAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
     def post(self, request):
         token = request.data.get("token", "").strip()
         new_password = request.data.get("new_password", "").strip()
@@ -621,8 +643,16 @@ class ResetPasswordAPIView(APIView):
             return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = token_obj.user
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"error": list(exc.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user.set_password(new_password)
-        user.save()
+        user.save(update_fields=["password"])
 
         token_obj.is_used = True
         token_obj.save(update_fields=["is_used"])
@@ -891,53 +921,95 @@ class PaymentSubmitAPIView(APIView):
     def post(self, request):
         course_id = request.data.get("course_id")
         access_group_id = request.data.get("access_group_id")
-        amount = request.data.get("amount")
-        payment_method = request.data.get("payment_method")
-        transaction_code = request.data.get("transaction_code", "").strip()
+        payment_method = str(request.data.get("payment_method", "")).strip()
+        transaction_code = str(request.data.get("transaction_code", "")).strip()
         payment_proof = request.FILES.get("payment_proof")
-        note = request.data.get("note", "").strip()
+        note = str(request.data.get("note", "")).strip()
 
-        if not amount or not payment_method:
-            return Response(
-                {"error": "Amount and payment_method are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        valid_methods = {choice[0] for choice in Payment.PAYMENT_METHODS}
+        if payment_method not in valid_methods:
+            return Response({"error": "A valid payment_method is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not course_id and not access_group_id:
+            return Response({"error": "course_id or access_group_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         course = None
         access_group = None
+        expected_amount = None
 
         if course_id:
             try:
-                course = Course.objects.get(pk=course_id)
-                access_group = course.access_group
+                course = Course.objects.select_related("access_group", "program__category").get(
+                    pk=course_id,
+                    is_published=True,
+                )
             except Course.DoesNotExist:
-                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Published course not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if access_group_id and not access_group:
+            if has_course_access(request.user, course):
+                return Response({"error": "You already have access to this course."}, status=status.HTTP_400_BAD_REQUEST)
+
+            expected_amount = course.discount_price if (
+                course.discount_price and course.discount_price > 0 and course.discount_price < course.price
+            ) else course.price
+            access_group = course.access_group
+
+        if access_group_id:
             try:
-                access_group = AccessGroup.objects.get(pk=access_group_id)
+                requested_group = AccessGroup.objects.get(pk=access_group_id, is_active=True)
             except AccessGroup.DoesNotExist:
-                return Response({"error": "Access Group not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Active access group not found."}, status=status.HTTP_404_NOT_FOUND)
+            if access_group and access_group.pk != requested_group.pk:
+                return Response({"error": "The selected access group does not match this course."}, status=status.HTTP_400_BAD_REQUEST)
+            access_group = requested_group
+
+        if course is None and access_group is not None:
+            package_levels = [access_group.slug]
+            if access_group.slug == "plus_two":
+                package_levels.append("plus2")
+            elif access_group.slug == "plus2":
+                package_levels.append("plus_two")
+            package = CourseAccessPackage.objects.filter(level__in=package_levels, is_active=True).first()
+            if not package:
+                return Response(
+                    {"error": "No active price package is configured for this access group."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            expected_amount = package.price
+
+        if expected_amount is None or expected_amount <= 0:
+            return Response({"error": "This item does not have a valid purchase price."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # The browser may send a display amount, but it is never authoritative.
+        submitted_amount = request.data.get("amount")
+        if submitted_amount not in (None, ""):
+            try:
+                if Decimal(str(submitted_amount)) != expected_amount:
+                    return Response(
+                        {"error": "The submitted amount does not match the current price. Refresh checkout and try again."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except Exception:
+                return Response({"error": "Invalid submitted amount."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = Payment.objects.create(
             user=request.user,
             course=course,
             access_group=access_group,
-            amount=Decimal(str(amount)),
+            amount=expected_amount,
             payment_method=payment_method,
             transaction_code=transaction_code,
             payment_proof=payment_proof,
             note=note,
-            status="pending"
+            status="pending",
         )
 
         return Response(
             {
                 "success": True,
                 "message": "Payment submitted successfully. Awaiting administrative verification.",
-                "payment": PaymentSerializer(payment).data
+                "payment": PaymentSerializer(payment).data,
             },
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
 
@@ -1053,7 +1125,16 @@ from .models import (
 from django.shortcuts import get_object_or_404
 
 
+@transaction.atomic
 def process_payment_decision(payment, decision, admin_user, rejection_reason=""):
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    already_processed = payment.status == decision and payment.verified_at and (
+        decision == "rejected" or Purchase.objects.filter(payment=payment).exists()
+    )
+    if already_processed:
+        return payment
+    if payment.status != "pending" and payment.status != decision:
+        raise ValueError("Only pending payments can be approved or rejected.")
     """
     Handles payment approval or rejection:
     1. Sets status ('approved' or 'rejected')
@@ -1119,10 +1200,7 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
             )
 
         # Fallback legacy section access
-        try:
-            grant_section_access_from_payment(payment, admin_user)
-        except Exception:
-            pass
+        grant_section_access_from_payment(payment, admin_user)
 
         # Audit log
         student_id = getattr(getattr(payment.user, "profile", None), "student_id", "")
