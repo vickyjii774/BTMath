@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import CourseCard from "../../components/CourseCard";
 import { getBachelorPrograms, getCourses } from "../../lib/api";
+import { deduplicatePrograms } from "../../lib/academic";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function BachelorPage() {
       getCourses({ level: "bachelor" }),
     ]);
 
-    programs = programData || [];
+    programs = deduplicatePrograms(programData || []);
     courses = courseData || [];
   } catch (error) {
     console.error("Failed to load bachelor data:", error);
