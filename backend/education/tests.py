@@ -341,6 +341,17 @@ class BTMathBackendTests(TestCase):
         ).first()
         self.assertIsNotNone(audit)
 
+        # Re-approving the same payment must not duplicate entitlement or audit side effects.
+        self.client.post(f"/api/admin/payments/{payment_id}/approve/")
+        self.assertEqual(
+            AuditLog.objects.filter(
+                admin=self.admin_user,
+                action="PAYMENT_APPROVED",
+                target_id=str(payment_id),
+            ).count(),
+            1,
+        )
+
     # =========================================================================
     # 6. Payment Rejection
     # =========================================================================
@@ -503,3 +514,19 @@ class BTMathBackendTests(TestCase):
 
         response = self.client.post(f"/api/progress/toggle/{self.material_premium.id}/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_expired_course_purchase_does_not_unlock_course(self):
+        student = User.objects.create_user(
+            username="expired-purchase@example.com",
+            email="expired-purchase@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        Purchase.objects.create(
+            user=student,
+            course=self.course_math11,
+            amount=Decimal("1500.00"),
+            is_active=True,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
