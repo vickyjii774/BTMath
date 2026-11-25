@@ -220,7 +220,7 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
 
   function getFullName(user) {
     const name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    return name || user.profile?.full_name || "—";
+    return name || user.full_name || user.profile?.full_name || "—";
   }
 
   return (
@@ -455,9 +455,9 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
                         {/* Email & Phone */}
                         <td className="px-6 py-5 text-sm text-gray-600">
                           <div>{user.email || "—"}</div>
-                          {user.profile?.phone && (
+                          {(user.phone || user.profile?.phone) && (
                             <div className="text-xs text-gray-400 mt-0.5">
-                              📞 {user.profile.phone}
+                              📞 {user.phone || user.profile?.phone}
                             </div>
                           )}
                         </td>
