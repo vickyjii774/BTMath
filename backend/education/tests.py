@@ -1,5 +1,6 @@
 from decimal import Decimal
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.core import mail
 from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -25,6 +26,7 @@ from .models import (
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
+    UserCourseAccess,
 )
 from .access import has_course_access
 
@@ -101,6 +103,7 @@ class BTMathBackendTests(TestCase):
             chapter=self.chapter,
             title="Lesson 1.1: Introduction to Sets",
             video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            content="Premium lesson explanation that must stay private.",
             order=1
         )
         self.material_premium = Material.objects.create(
@@ -183,6 +186,7 @@ class BTMathBackendTests(TestCase):
     # =========================================================================
     # 3. Password Reset Workflow
     # =========================================================================
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", DEFAULT_FROM_EMAIL="BTMath <test@btmath.local>", FRONTEND_URL="https://btmath.example")
     def test_password_reset_flow(self):
         user = User.objects.create_user(
             username="forgot_pwd@example.com",
@@ -196,8 +200,11 @@ class BTMathBackendTests(TestCase):
             "email": "forgot_pwd@example.com"
         }, format="json")
         self.assertEqual(res_forgot.status_code, status.HTTP_200_OK)
-        token = res_forgot.data.get("dev_reset_token")
-        self.assertTrue(bool(token))
+        self.assertNotIn("dev_reset_token", res_forgot.data)
+        self.assertEqual(len(mail.outbox), 1)
+        token_obj = PasswordResetToken.objects.get(user=user, is_used=False)
+        token = token_obj.token
+        self.assertIn(token, mail.outbox[0].body)
 
         # Reset password
         res_reset = self.client.post("/api/auth/reset-password/", {
@@ -247,6 +254,10 @@ class BTMathBackendTests(TestCase):
         self.client.force_authenticate(user=student_a)
         res_a = self.client.get(f"/api/courses/{self.course_math11.slug}/")
         self.assertEqual(res_a.status_code, status.HTTP_200_OK)
+        lesson_a = res_a.data["chapters"][0]["lessons"][0]
+        self.assertFalse(lesson_a["is_locked"])
+        self.assertIn("Premium lesson explanation", lesson_a["content"])
+        self.assertTrue(lesson_a["video_url"])
         material_a = res_a.data["materials"][0]
         self.assertFalse(material_a["is_locked"])
         self.assertIn("Private protected lecture notes", material_a["content_text"])
@@ -255,6 +266,10 @@ class BTMathBackendTests(TestCase):
         self.client.force_authenticate(user=student_b)
         res_b = self.client.get(f"/api/courses/{self.course_math11.slug}/")
         self.assertEqual(res_b.status_code, status.HTTP_200_OK)
+        lesson_b = res_b.data["chapters"][0]["lessons"][0]
+        self.assertTrue(lesson_b["is_locked"])
+        self.assertEqual(lesson_b["content"], "")
+        self.assertEqual(lesson_b["video_url"], "")
         material_b = res_b.data["materials"][0]
         self.assertTrue(material_b["is_locked"])
         self.assertIn("This content is premium", material_b["content_text"])
@@ -419,3 +434,72 @@ class BTMathBackendTests(TestCase):
         }, format="json")
         self.assertEqual(res_contact.status_code, status.HTTP_201_CREATED)
         self.assertEqual(ContactMessage.objects.count(), 1)
+
+    def test_payment_submission_uses_server_price_and_rejects_tampering(self):
+        student = User.objects.create_user(
+            username="tamper@example.com",
+            email="tamper@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        self.client.force_authenticate(user=student)
+
+        response = self.client.post("/api/payments/submit/", {
+            "course_id": self.course_math11.id,
+            "amount": "1.00",
+            "payment_method": "esewa",
+            "transaction_code": "TAMPER-001",
+        }, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Payment.objects.filter(user=student).count(), 0)
+
+        response = self.client.post("/api/payments/submit/", {
+            "course_id": self.course_math11.id,
+            "amount": "1500.00",
+            "payment_method": "esewa",
+            "transaction_code": "VALID-001",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Decimal(str(response.data["payment"]["amount"])), Decimal("1500.00"))
+
+    def test_unrelated_legacy_access_does_not_unlock_paid_course(self):
+        student = User.objects.create_user(
+            username="legacy@example.com",
+            email="legacy@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        UserCourseAccess.objects.create(
+            user=student,
+            package="Old unrelated package",
+            is_active=True,
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
+
+    def test_expired_access_group_does_not_unlock_paid_course(self):
+        student = User.objects.create_user(
+            username="expired@example.com",
+            email="expired@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        UserAccessGroup.objects.create(
+            user=student,
+            access_group=self.ag_plus_two,
+            is_active=True,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
+
+    def test_locked_material_progress_cannot_be_toggled(self):
+        student = User.objects.create_user(
+            username="progress-locked@example.com",
+            email="progress-locked@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        self.client.force_authenticate(user=student)
+
+        response = self.client.post(f"/api/progress/toggle/{self.material_premium.id}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
