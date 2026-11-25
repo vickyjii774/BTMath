@@ -97,12 +97,18 @@ def has_course_access(user, course):
         ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists():
             return True
 
-    purchase_query = Purchase.objects.filter(user=user, is_active=True).filter(
-        Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+    purchase_scope = Q(course=course)
+    if course.access_group_id:
+        purchase_scope |= Q(
+            access_group_id=course.access_group_id,
+            access_group__is_active=True,
+        )
+    purchase_query = Purchase.objects.filter(
+        user=user,
+        is_active=True,
     ).filter(
-        Q(course=course) |
-        Q(access_group_id=course.access_group_id) if course.access_group_id else Q(course=course)
-    )
+        Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+    ).filter(purchase_scope)
     if purchase_query.exists():
         return True
 
