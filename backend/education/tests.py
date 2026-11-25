@@ -29,6 +29,7 @@ from .models import (
     UserCourseAccess,
 )
 from .access import has_course_access
+from .views import AdminResourceAPIView
 
 
 class BTMathBackendTests(TestCase):
@@ -541,6 +542,17 @@ class AcademicAdminHierarchyTests(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.admin_user)
+
+    def test_admin_material_boolean_values_accept_multipart_strings(self):
+        view = AdminResourceAPIView()
+        published = {"is_published": "true"}
+        unpublished = {"is_published": "false"}
+
+        view.normalize_model_fields(Material, published)
+        view.normalize_model_fields(Material, unpublished)
+
+        self.assertIs(published["is_published"], True)
+        self.assertIs(unpublished["is_published"], False)
 
     def test_admin_can_create_sections_programs_and_nested_periods(self):
         section_response = self.client.post(
