@@ -955,6 +955,11 @@ class PaymentSubmitAPIView(APIView):
                 course.discount_price and course.discount_price > 0 and course.discount_price < course.price
             ) else course.price
             access_group = course.access_group
+            if access_group and not access_group.is_active:
+                return Response(
+                    {"error": "This course's access group is currently unavailable. Please contact BTMath support."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if access_group_id:
             try:
@@ -1163,6 +1168,9 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
         target_group = payment.access_group
         if not target_group and payment.course:
             target_group = payment.course.access_group
+
+        if target_group and not target_group.is_active:
+            raise ValueError("The payment's access group is inactive. Activate the group before approving this payment.")
 
         if not target_group and payment.course and payment.course.program and payment.course.program.category:
             level = payment.course.program.category.level
