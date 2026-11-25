@@ -1324,17 +1324,31 @@ class AdminDashboardView(APIView):
 
     def get(self, request):
         stats = SiteStatistic.get_stats()
+
+        # Count actual student accounts, excluding staff, superusers, instructors
+        # and admin-role profiles. Profiles are optional for legacy user records.
+        student_users = User.objects.filter(
+            is_staff=False,
+            is_superuser=False,
+        ).filter(
+            Q(profile__isnull=True) | Q(profile__role="student")
+        )
+
         return Response({
-            "total_students": UserProfile.objects.filter(role="student").count() or User.objects.count(),
+            "total_students": student_users.count(),
             "total_courses": Course.objects.count(),
             "total_programs": Program.objects.count(),
             "pending_payments": Payment.objects.filter(status="pending").count(),
+            "active_purchases": Purchase.objects.filter(is_active=True).count(),
             "approved_purchases": Purchase.objects.filter(is_active=True).count(),
-            "total_enrollments": Enrollment.objects.count(),
+            "total_enrollments": Enrollment.objects.filter(status="active").count(),
             "total_visitors": stats.total_visitors,
             "total_page_views": stats.total_page_views,
             "total_contact_messages": ContactMessage.objects.count(),
-            "unread_contacts": ContactMessage.objects.filter(is_read=False).count(),
+            "unread_contacts": ContactMessage.objects.filter(
+                is_read=False,
+                is_archived=False,
+            ).count(),
             "pending_requests": UserRequest.objects.filter(status="pending").count(),
             "access_groups": AccessGroup.objects.count(),
         })
