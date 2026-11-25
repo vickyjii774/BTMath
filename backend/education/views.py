@@ -25,8 +25,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsAdminUser
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 from .models import (
 
     Course,
@@ -1189,7 +1189,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1620,7 +1620,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1674,7 +1674,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1914,6 +1914,31 @@ class AdminResourceAPIView(APIView):
 
     permission_classes = [IsAuthenticated, IsAdminUser]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    # Academic structure, curriculum, pricing and public-site content are
+    # controlled by Superadmins. Operational admins retain student, payment
+    # and support workflows.
+    SUPERADMIN_ONLY_RESOURCES = {
+        "categories",
+        "programs",
+        "academic-periods",
+        "academic-units",
+        "subjects",
+        "courses",
+        "chapters",
+        "lessons",
+        "materials",
+        "access-groups",
+        "site-content",
+        "social-links",
+        "team-members",
+    }
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        if getattr(self, "resource", None) in self.SUPERADMIN_ONLY_RESOURCES:
+            permissions.append(IsSuperAdminUser())
+        return permissions
 
     RESOURCE_MODELS = {
         "categories": Category,
