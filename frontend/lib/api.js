@@ -131,12 +131,6 @@ export async function apiFetch(endpoint, options = {}) {
   // Debug request
   // ----------------------------------------------------------
 
-  console.log("=================================");
-  console.log("BTMath API REQUEST:", url);
-  console.log("AUTH ENDPOINT:", isAuthEndpoint);
-  console.log("=================================");
-
-
   try {
 
     // --------------------------------------------------------
@@ -169,11 +163,14 @@ export async function apiFetch(endpoint, options = {}) {
 
     if (!response.ok) {
 
-      throw new Error(
-        `BTMath API ${response.status} ${response.statusText}${
-          text ? ` - ${text}` : ""
-        }`
-      );
+      let message = `Request failed (${response.status}).`;
+      try {
+        const errorData = JSON.parse(text);
+        message = errorData?.error || errorData?.detail || message;
+      } catch {
+        // Do not expose raw server responses in browser errors.
+      }
+      throw new Error(message);
     }
 
 
@@ -198,14 +195,6 @@ export async function apiFetch(endpoint, options = {}) {
     }
 
   } catch (error) {
-
-    console.error("=================================");
-    console.error("BTMath FETCH FAILED");
-    console.error("URL:", url);
-    console.error("ERROR MESSAGE:", error?.message);
-    console.error("ERROR NAME:", error?.name);
-    console.error("ERROR STACK:", error?.stack);
-    console.error("=================================");
 
     throw error;
   }
