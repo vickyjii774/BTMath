@@ -2310,7 +2310,7 @@ class AdminResourceAPIView(APIView):
 
 
 
-        data = request.data.copy()
+        data = {key: request.data.get(key) for key in request.data.keys()}
 
 
 
@@ -2426,7 +2426,7 @@ class AdminResourceAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        data = request.data.copy()
+        data = {key: request.data.get(key) for key in request.data.keys()}
         data.pop("id", None)
         requested_payment_status = data.pop("status", None) if resource == "payments" else None
 
