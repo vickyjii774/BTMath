@@ -210,7 +210,19 @@ export async function apiFetch(endpoint, options = {}) {
 // ============================================================
 
 export async function getCategories() {
-  return apiFetch("/categories/");
+  // Categories are public catalogue data; do not attach a possibly expired
+  // student/admin token to this request.
+  const response = await fetch(`${API_URL}/categories/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Unable to load academic categories (${response.status}).`);
+  }
+
+  return response.json();
 }
 
 
