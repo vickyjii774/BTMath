@@ -58,6 +58,8 @@ from .models import (
     UserRequest,
     ContactMessage,
     SocialLink,
+    TeamMember,
+    SiteContent,
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
@@ -1068,6 +1070,68 @@ class SocialLinkListAPIView(APIView):
         })
 
 
+class SiteContentAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        content, _ = SiteContent.objects.get_or_create(key="main")
+        return Response({
+            field: getattr(content, field)
+            for field in (
+                "about_title", "about_intro", "about_story", "mission", "vision",
+                "values", "contact_email", "contact_phone", "whatsapp_number",
+                "address", "support_hours", "contact_description", "updated_at"
+            )
+        })
+
+
+class TeamMemberListAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        members = TeamMember.objects.filter(is_active=True).order_by("order", "id")
+        return Response({"success": True, "results": [
+            {"id": m.id, "name": m.name, "role": m.role, "bio": m.bio,
+             "image_url": m.image_url, "email": m.email,
+             "linkedin_url": m.linkedin_url, "order": m.order}
+            for m in members
+        ]})
+
+
+class AdminContactReplyAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, pk):
+        contact = get_object_or_404(ContactMessage, pk=pk)
+        reply = str(request.data.get("reply", "")).strip()
+        if not reply:
+            return Response({"detail": "Write a reply before sending."}, status=status.HTTP_400_BAD_REQUEST)
+        if not contact.email:
+            return Response({"detail": "This inquiry has no sender email address."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            sent = send_mail(
+                f"Re: {contact.subject or 'Your inquiry to BTMath'}",
+                f"Hello {contact.name or 'there'},\\n\\n{reply}\\n\\nRegards,\\nBTMath Support",
+                settings.DEFAULT_FROM_EMAIL,
+                [contact.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            return Response({
+                "detail": "Email could not be sent. Check the backend SMTP configuration.",
+                "error": str(exc),
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if not sent:
+            return Response({"detail": "The email service did not accept the message."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        contact.reply_message = reply
+        contact.is_replied = True
+        contact.is_read = True
+        contact.replied_at = timezone.now()
+        contact.replied_by = request.user
+        contact.save(update_fields=["reply_message", "is_replied", "is_read", "replied_at", "replied_by"])
+        return Response({"success": True, "message": f"Reply emailed to {contact.email}.", "contact_id": contact.id})
+
+
 class RecordSiteVisitAPIView(APIView):
     """
     Lightweight visitor and page view counter for frontend.
@@ -1851,6 +1915,8 @@ class AdminResourceAPIView(APIView):
         "user-access-groups": UserAccessGroup,
         "contacts": ContactMessage,
         "social-links": SocialLink,
+        "team-members": TeamMember,
+        "site-content": SiteContent,
         "audit-logs": AuditLog,
     }
 
