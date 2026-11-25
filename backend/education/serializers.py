@@ -194,8 +194,6 @@ class LessonSerializer(serializers.ModelSerializer):
         course = obj.chapter.course if obj.chapter_id else None
         if not request or not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_staff or request.user.is_superuser:
-            return True
         return bool(course and has_course_access(request.user, course))
 
     def get_is_locked(self, obj):
