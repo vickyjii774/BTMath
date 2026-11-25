@@ -20,11 +20,11 @@ SECTION_GROUP_SLUGS = {
 
 
 def get_course_section(course):
-    """Return the BTMath section that owns a course, if it is recognised."""
+    """Return the dynamic academic section slug that owns a course."""
     if not course or not course.program or not course.program.category:
         return None
     section = (course.program.category.level or "").strip().lower()
-    return section if section in VALID_SECTIONS else None
+    return section or None
 
 
 def _account_is_eligible(user):
@@ -42,10 +42,12 @@ def has_section_access(user, section):
         return True
 
     section = (section or "").strip().lower()
-    if section not in VALID_SECTIONS:
+    if not section:
         return False
 
     now = timezone.now()
+    # Dynamic AccessGroups support newly-created academic sections such as
+    # PhD without requiring a database migration or hardcoded section list.
     slugs = SECTION_GROUP_SLUGS.get(section, (section,))
     group_grant = UserAccessGroup.objects.filter(
         user=user,
@@ -55,6 +57,11 @@ def has_section_access(user, section):
     ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
     if group_grant:
         return True
+
+    # UserSectionAccess is a legacy entitlement table with fixed choices.
+    # Keep it for the original four sections only.
+    if section not in VALID_SECTIONS:
+        return False
 
     return UserSectionAccess.objects.filter(
         user=user,
