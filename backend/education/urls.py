@@ -362,6 +362,24 @@ urlpatterns = [
 
 
     # ------------------------------------------------------------
+    # ACADEMIC SECTIONS
+    # ------------------------------------------------------------
+
+    path(
+        "admin/categories/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "categories"},
+        name="admin-categories",
+    ),
+
+    path(
+        "admin/categories/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "categories"},
+        name="admin-category-detail",
+    ),
+
+    # ------------------------------------------------------------
     # PROGRAMS
     # ------------------------------------------------------------
 
