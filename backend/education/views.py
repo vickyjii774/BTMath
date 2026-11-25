@@ -1831,10 +1831,10 @@ class AdminResourceAPIView(APIView):
 
 
     permission_classes = [IsAuthenticated, IsAdminUser]
-
-
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     RESOURCE_MODELS = {
+        "categories": Category,
         "requests": UserRequest,
         "programs": Program,
         "academic-periods": AcademicPeriod,
@@ -2584,6 +2584,7 @@ class AdminResourceAPIView(APIView):
 
 
         foreign_keys = {
+            "category": Category,
             "program": Program,
             "academic_period": AcademicPeriod,
             "academic_unit": AcademicPeriod,
