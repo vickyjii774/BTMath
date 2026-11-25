@@ -412,7 +412,7 @@ export default function AdminPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-gray-500">
-            ${isSuperAdmin
+            {isSuperAdmin
               ? "Manage academic sections, programmes, courses, learning materials and platform operations."
               : "Manage student accounts, verify payments and respond to student support inquiries."}
           </p>
