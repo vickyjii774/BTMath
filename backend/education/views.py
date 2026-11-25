@@ -672,6 +672,7 @@ class MyAccessGroupsAPIView(APIView):
     def get(self, request):
         access_groups = UserAccessGroup.objects.filter(
             user=request.user,
+            access_group__is_active=True,
             is_active=True
         ).select_related("access_group")
 
@@ -693,7 +694,11 @@ class UserPurchasesListAPIView(APIView):
     def get(self, request):
         purchases = Purchase.objects.filter(
             user=request.user,
-            is_active=True
+            is_active=True,
+        ).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        ).filter(
+            Q(course__isnull=False) | Q(access_group__isnull=True) | Q(access_group__is_active=True)
         ).select_related("course", "access_group", "payment")
         serializer = PurchaseSerializer(purchases, many=True)
         return Response({
@@ -1212,7 +1217,7 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
             Enrollment.objects.update_or_create(
                 user=payment.user,
                 course=payment.course,
-                defaults={"status": "active"}
+                defaults={"status": "active", "expiry_date": None}
             )
 
         # Fallback legacy section access
@@ -1455,14 +1460,17 @@ class AdminUserManageAccessAPIView(APIView):
 
         if not access_group_id:
             return Response({"error": "access_group_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if action not in ("grant", "revoke"):
+            return Response({"error": "action must be grant or revoke."}, status=status.HTTP_400_BAD_REQUEST)
 
         group = get_object_or_404(AccessGroup, pk=access_group_id)
-
         if action == "grant":
+            if not group.is_active:
+                return Response({"error": "Activate this access group before granting it."}, status=status.HTTP_400_BAD_REQUEST)
             UserAccessGroup.objects.update_or_create(
                 user=user,
                 access_group=group,
-                defaults={"is_active": True, "granted_by": request.user}
+                defaults={"is_active": True, "granted_by": request.user, "expires_at": None}
             )
             AuditLog.objects.create(
                 admin=request.user,
