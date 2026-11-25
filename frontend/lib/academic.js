@@ -29,3 +29,42 @@ export function formatAcademicPeriodName(period, index = 0) {
 function titleCase(value) {
   return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
+// +2 is presented as one two-year programme. Hide legacy standalone
+// Class 11/Class 12 records and collapse duplicate programme records that
+// expose the same Grade 11/Grade 12 structure. No database rows are changed.
+export function deduplicatePlusTwoPrograms(programs = []) {
+  const candidates = programs.filter((program) => {
+    const periods = program?.academic_periods?.length
+      ? program.academic_periods
+      : program?.semesters?.length
+        ? program.semesters
+        : program?._academic_periods?.length
+          ? program._academic_periods
+          : program?._semesters || [];
+    return periods.length > 0;
+  });
+
+  const groups = new Map();
+  for (const program of candidates) {
+    const periods = program.academic_periods?.length
+      ? program.academic_periods
+      : program.semesters?.length
+        ? program.semesters
+        : program._academic_periods?.length
+          ? program._academic_periods
+          : program._semesters || [];
+    const structure = periods.map((period, index) => {
+      const name = formatAcademicPeriodName(period, index);
+      return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }).sort().join("|");
+    const key = structure || String(program.id || program.name);
+    const current = groups.get(key);
+    const score = (item) =>
+      (item.courses?.length || 0) * 10 +
+      (item.academic_periods?.length || item.semesters?.length || 0) * 3 +
+      (item.description ? 1 : 0) +
+      (item.duration_info ? 1 : 0);
+    if (!current || score(program) > score(current)) groups.set(key, program);
+  }
+  return [...groups.values()];
+}
