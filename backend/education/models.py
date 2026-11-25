@@ -9,19 +9,10 @@ import secrets
 
 
 class Category(models.Model):
-    LEVEL_CHOICES = [
-        ("plus2", "+2"),
-        ("bachelor", "Bachelor"),
-        ("master", "Master"),
-        ("ioe", "IOE"),
-    ]
-
+    # Stable machine key used by public pages (plus2, bachelor, master, ioe).
+    # Admin-created sections may use their own unique key without a code change.
     name = models.CharField(max_length=100)
-    level = models.CharField(
-        max_length=20,
-        choices=LEVEL_CHOICES,
-        unique=True
-    )
+    level = models.SlugField(max_length=20, unique=True)
     description = models.TextField(blank=True)
     image = models.ImageField(
         upload_to="categories/",
