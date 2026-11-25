@@ -215,6 +215,8 @@ export default function Footer() {
               <Link href="/" className="block hover:text-white">
                 Home
               </Link>
+              <Link href="/about" className="block hover:text-white">About BTMath</Link>
+              <Link href="/team" className="block hover:text-white">Our Team</Link>
               <Link href="/contact" className="block hover:text-white">
                 Contact & Inquiries
               </Link>
