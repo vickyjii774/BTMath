@@ -40,6 +40,9 @@ from .views import (
     RecordSiteVisitAPIView,
     ContactMessageCreateAPIView,
     SocialLinkListAPIView,
+    SiteContentAPIView,
+    TeamMemberListAPIView,
+    AdminContactReplyAPIView,
 
     # Admin Management
     AdminDashboardView,
@@ -253,6 +256,9 @@ urlpatterns = [
         SocialLinkListAPIView.as_view(),
         name="social-links-list-api",
     ),
+    path("site-content/", SiteContentAPIView.as_view(), name="site-content-api"),
+    path("team/", TeamMemberListAPIView.as_view(), name="team-list-api"),
+
 
 
     # ============================================================
@@ -649,6 +655,8 @@ urlpatterns = [
         },
         name="admin-contact-detail",
     ),
+    path("admin/contacts/<int:pk>/reply/", AdminContactReplyAPIView.as_view(), name="admin-contact-reply"),
+
 
     # ------------------------------------------------------------
     # SOCIAL LINKS
