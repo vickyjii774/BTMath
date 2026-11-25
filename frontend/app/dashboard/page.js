@@ -100,7 +100,6 @@ export default function DashboardPage() {
     if (!enrolledCourses.length) return 0;
     return Math.round(enrolledCourses.reduce((sum, course) => sum + Number(course.progress_percentage || 0), 0) / enrolledCourses.length);
   }, [enrolledCourses]);
-  const approvedPayments = payments.filter((payment) => ["approved", "completed"].includes(String(payment.status || "").toLowerCase())).length;
   const greeting = (() => {
     const hour = new Date().getHours();
     return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
