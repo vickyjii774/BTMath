@@ -129,7 +129,8 @@ export default function RequestsPage() {
                 <thead className="border-b bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-left">ID</th>
-                    <th className="px-6 py-4 text-left">User</th>
+                    <th className="px-6 py-4 text-left">Student ID</th>
+                    <th className="px-6 py-4 text-left">User / Email</th>
                     <th className="px-6 py-4 text-left">Type</th>
                     <th className="px-6 py-4 text-left">Status</th>
                     <th className="px-6 py-4 text-left">Created</th>
@@ -141,7 +142,8 @@ export default function RequestsPage() {
                   {requests.map((item) => (
                     <tr key={item.id}>
                       <td className="px-6 py-4">{item.id}</td>
-                      <td className="px-6 py-4">{item.user || item.user_id || "—"}</td>
+                      <td className="px-6 py-4"><span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 font-mono text-xs font-semibold text-blue-700">{item.student_id || (item.user ? "BTM-" + String(item.user).padStart(6, "0") : "—")}</span></td>
+                      <td className="px-6 py-4"><p className="font-semibold text-gray-900">{item.user_name || item.user_username || item.username || (item.user ? "User #" + item.user : "—")}</p><p className="mt-0.5 text-xs text-gray-500">{item.user_email || item.email || "Email not available"}</p></td>
                       <td className="px-6 py-4">
                         {item.request_type || "—"}
                       </td>
