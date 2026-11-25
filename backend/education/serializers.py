@@ -718,38 +718,30 @@ class MaterialSerializer(serializers.ModelSerializer):
 
 class ChapterSerializer(serializers.ModelSerializer):
 
+    lessons = serializers.SerializerMethodField()
     materials = serializers.SerializerMethodField()
 
     class Meta:
         model = Chapter
-
         fields = [
             "id",
             "title",
             "description",
             "order",
+            "is_published",
+            "lessons",
             "materials",
         ]
 
+    def get_lessons(self, obj):
+        lessons = obj.lessons.filter(is_published=True).order_by("order", "id")
+        return LessonSerializer(lessons, many=True, context=self.context).data
+
     def get_materials(self, obj):
-
-        materials = (
-            obj.materials
-            .all()
-            .order_by(
-                "order",
-                "id"
-            )
-        )
-
-        return MaterialSerializer(
-            materials,
-            many=True,
-            context=self.context
-        ).data
+        materials = obj.materials.filter(is_published=True).order_by("order", "id")
+        return MaterialSerializer(materials, many=True, context=self.context).data
 
 
-# =========================================================
 # COURSE LIST SERIALIZER
 # =========================================================
 
