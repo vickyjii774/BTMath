@@ -651,3 +651,39 @@ class AcademicAdminHierarchyTests(TestCase):
         self.assertEqual(identity_response.status_code, status.HTTP_200_OK)
         self.assertTrue(identity_response.data["is_superuser"])
 
+    def test_dynamic_academic_section_access_group_unlocks_all_its_courses(self):
+        phd_category = Category.objects.create(
+            name="PhD",
+            level="phd",
+            description="Doctoral Mathematics",
+        )
+        phd_program = Program.objects.create(
+            category=phd_category,
+            name="PhD Mathematics",
+        )
+        phd_course = Course.objects.create(
+            title="Advanced Research Mathematics",
+            slug="advanced-research-mathematics",
+            program=phd_program,
+            price=Decimal("2500.00"),
+        )
+        phd_group = AccessGroup.objects.create(
+            name="PHD",
+            slug="phd",
+            description="Access to all PhD Mathematics courses",
+        )
+        student = User.objects.create_user(
+            username="phd-student",
+            email="phd-student@example.com",
+            password="StudentPassword123!",
+        )
+        UserAccessGroup.objects.create(
+            user=student,
+            access_group=phd_group,
+            is_active=True,
+        )
+
+        # The course itself has no explicit access_group; the matching
+        # category-level group should still unlock every course in the section.
+        self.assertTrue(has_course_access(student, phd_course))
+
