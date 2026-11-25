@@ -322,6 +322,24 @@ export default function AdminPage() {
       icon: "📬",
       badge: stats.unread_contacts > 0 ? `${stats.unread_contacts} New` : null,
     },
+    {
+      title: "About & Contact Details",
+      description: "Edit the public About BTMath page, support email, phone, WhatsApp, address and support hours.",
+      href: "/admin/site-content",
+      icon: "🏢",
+    },
+    {
+      title: "Social Media Links",
+      description: "Add and manage social media profiles displayed on the website.",
+      href: "/admin/social-links",
+      icon: "🔗",
+    },
+    {
+      title: "Our Team",
+      description: "Add educator and team profiles and control which members appear publicly.",
+      href: "/admin/team",
+      icon: "🧑‍🏫",
+    },
    
   
   ];
