@@ -293,23 +293,23 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label={userType === "staff" ? "Total Staff / Admins" : "Total Students"} value={roleUsers.length} />
           <StatCard
-            label="Active Students"
+            label={userType === "staff" ? "Active Staff / Admins" : "Active Students"}
             value={
-              users.filter(
-                (u) => !u.is_staff && !u.profile?.is_disabled && u.is_active !== false
+              roleUsers.filter(
+                (u) => !u.profile?.is_disabled && u.is_active !== false
               ).length
             }
           />
           <StatCard
             label="Disabled Accounts"
             value={
-              users.filter(
+              roleUsers.filter(
                 (u) => u.profile?.is_disabled === true || u.is_active === false
               ).length
             }
           />
           <StatCard
-            label="Staff / Admins"
+            label={userType === "staff" ? "Privileged Accounts" : "Staff / Admins"}
             value={roleUsers.filter((u) => u.is_staff || u.is_superuser).length}
           />
         </div>
@@ -372,7 +372,11 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
             <div className="text-4xl">👥</div>
             <h2 className="mt-4 text-lg font-semibold">No users found</h2>
             <p className="mt-2 text-sm text-gray-500">
-              {search ? "No users match your search." : "{userType === "staff" ? "No staff or administrator accounts found." : "No registered students found."}"}
+              {search
+                ? "No accounts match your search."
+                : userType === "staff"
+                  ? "No staff or administrator accounts found."
+                  : "No registered students found."}
             </p>
           </div>
         )}
@@ -384,9 +388,9 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
               <table className="w-full min-w-[950px] text-left">
                 <thead className="border-b border-gray-200 bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      Student ID
-                    </th>
+                    {userType === "students" && (
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">Student ID</th>
+                    )}
                     <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
                       User
                     </th>
