@@ -647,3 +647,7 @@ class AcademicAdminHierarchyTests(TestCase):
         response = self.client.get("/api/admin/courses/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        identity_response = self.client.get("/api/auth/me/")
+        self.assertEqual(identity_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(identity_response.data["is_superuser"])
+
