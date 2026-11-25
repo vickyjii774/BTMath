@@ -280,7 +280,7 @@ export default function AdminPage() {
     {
       title: "Access Groups",
       description:
-        "Manage access groups (PLUS_TWO, BACHELOR, MASTER, IOE) and course bundles.",
+        "Configure academic access groups and course bundles for each academic section.",
       href: "/admin/access-groups",
       icon: "🔑",
     },
@@ -412,9 +412,9 @@ export default function AdminPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-gray-500">
-            Manage users, courses, subjects, materials,
-            requests, enrollments, payments and platform
-            activity.
+            ${isSuperAdmin
+              ? "Manage academic sections, programmes, courses, learning materials and platform operations."
+              : "Manage student accounts, verify payments and respond to student support inquiries."}
           </p>
 
         </section>
@@ -518,7 +518,7 @@ export default function AdminPage() {
         <section className="mt-12">
           <div className="mb-6">
             <h2 className="text-xl font-bold">Platform Operations</h2>
-            <p className="mt-1 text-sm text-gray-500">Manage students, access permissions, payments and incoming inquiries.</p>
+            <p className="mt-1 text-sm text-gray-500">Manage student accounts, payment verification and incoming support inquiries.</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {operationsItems.map((item) => (
