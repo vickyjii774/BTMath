@@ -171,6 +171,7 @@ class MaterialSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     materials = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
@@ -183,9 +184,29 @@ class LessonSerializer(serializers.ModelSerializer):
             "video_url",
             "order",
             "is_published",
+            "is_locked",
             "materials",
             "created_at",
         ]
+
+    def _has_access(self, obj):
+        request = self.context.get("request")
+        course = obj.chapter.course if obj.chapter_id else None
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_staff or request.user.is_superuser:
+            return True
+        return bool(course and has_course_access(request.user, course))
+
+    def get_is_locked(self, obj):
+        return not self._has_access(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("is_locked"):
+            data["content"] = ""
+            data["video_url"] = ""
+        return data
 
     def get_materials(self, obj):
         materials = obj.materials.filter(is_published=True).order_by("order", "id")
