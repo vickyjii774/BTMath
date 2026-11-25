@@ -86,13 +86,20 @@ export default function MaterialsPage() {
     String(course.program) === String(programId) &&
     (!periodId || String(course.academic_period || "") === String(periodId))
   ), [courses, programId, periodId]);
+  const selectedProgram = programs.find((p) => String(p.id) === String(programId));
   const selectedCourse = courses.find((c) => String(c.id) === String(courseId));
-  const visibleChapters = useMemo(() => chapters.filter((c) => String(c.course) === String(courseId)), [chapters, courseId]);
+  const visibleChapters = useMemo(() => chapters.filter((chapter) => courseId
+    ? String(chapter.course) === String(courseId)
+    : Boolean(programId) && !chapter.course && String(chapter.program) === String(programId)
+  ), [chapters, courseId, programId]);
   const selectedChapter = visibleChapters.find((c) => String(c.id) === String(chapterId));
-  const visibleMaterials = useMemo(() => materials.filter((m) =>
-    String(m.course) === String(courseId) &&
-    (chapterId ? String(m.chapter) === String(chapterId) : !m.chapter)
-  ), [materials, courseId, chapterId]);
+  const visibleMaterials = useMemo(() => materials.filter((material) => {
+    if (courseId) {
+      return String(material.course) === String(courseId) &&
+        (chapterId ? String(material.chapter) === String(chapterId) : !material.chapter);
+    }
+    return Boolean(chapterId) && !material.course && String(material.chapter) === String(chapterId);
+  }), [materials, courseId, chapterId]);
 
   function onSectionChange(value) { setSectionId(value); setProgramId(""); setPeriodId(""); setCourseId(""); setChapterId(""); }
   function onProgramChange(value) { setProgramId(value); setPeriodId(""); setCourseId(""); setChapterId(""); }
@@ -101,10 +108,10 @@ export default function MaterialsPage() {
 
   async function saveChapter(event) {
     event.preventDefault();
-    if (!courseId || !chapterForm?.title.trim()) return;
+    if (!programId || !chapterForm?.title.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const payload = { course: Number(courseId), program: Number(programId), title: chapterForm.title.trim(), description: chapterForm.description || "", order: Number(chapterForm.order) || 1 };
+      const payload = { course: courseId ? Number(courseId) : null, program: Number(programId), title: chapterForm.title.trim(), description: chapterForm.description || "", order: Number(chapterForm.order) || 1 };
       if (chapterForm.id) await api(`/admin/chapters/${chapterForm.id}/`, { method: "PUT", body: JSON.stringify(payload) });
       else await api("/admin/chapters/", { method: "POST", body: JSON.stringify(payload) });
       setChapterForm(null); setNotice("Chapter saved."); await loadAll();
@@ -119,11 +126,12 @@ export default function MaterialsPage() {
 
   async function saveMaterial(event) {
     event.preventDefault();
-    if (!courseId || !materialForm?.title.trim()) return;
+    if (!programId || !materialForm?.title.trim()) return;
+    if (!courseId && !chapterId) { setError("For program-level resources, select a chapter before adding materials."); return; }
     setSaving(true); setError(""); setNotice("");
     try {
       const body = new FormData();
-      body.append("course", String(courseId));
+      body.append("course", courseId ? String(courseId) : "");
       body.append("chapter", chapterId ? String(chapterId) : "");
       body.append("title", materialForm.title.trim());
       body.append("material_type", materialForm.material_type);
@@ -183,10 +191,10 @@ export default function MaterialsPage() {
             {programId && periodId && visibleCourses.length === 0 && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">No course is linked to this academic period yet. Open Course Management and assign a course to this program and period first.</p>}
           </section>
 
-          {selectedCourse && <>
+          {programId && <>
             <section className="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div><p className="text-xs font-bold uppercase tracking-wider text-indigo-600">{selectedPeriod?.name || "Course resources"}</p><h2 className="mt-1 text-xl font-bold">{selectedCourse.title}</h2><p className="mt-1 text-sm text-slate-500">Manage chapters and resources for this course.</p></div>
+                <div><p className="text-xs font-bold uppercase tracking-wider text-indigo-600">{selectedPeriod?.name || "Program resources"}</p><h2 className="mt-1 text-xl font-bold">{selectedCourse?.title || selectedProgram?.name || "Program resources"}</h2><p className="mt-1 text-sm text-slate-500">{selectedCourse ? "Manage chapters and resources for this course." : "Manage existing program-level chapters and their learning resources."}</p></div>
                 <button onClick={() => setChapterForm({ ...EMPTY_CHAPTER })} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">+ Add chapter</button>
               </div>
               {chapterForm && <form onSubmit={saveChapter} className="mt-5 grid gap-3 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 md:grid-cols-3">
@@ -198,7 +206,7 @@ export default function MaterialsPage() {
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <button onClick={() => setChapterId("")} className={`rounded-xl border p-4 text-left ${!chapterId ? "border-indigo-500 bg-indigo-50" : "hover:border-slate-300"}`}><div className="text-sm font-bold">Semester / course-level resources</div><p className="mt-1 text-xs text-slate-500">General PDFs, notes and videos not assigned to a chapter.</p></button>
                 {visibleChapters.map((chapter) => <div key={chapter.id} className={`rounded-xl border p-4 ${String(chapter.id) === String(chapterId) ? "border-indigo-500 bg-indigo-50" : "bg-white"}`}>
-                  <button onClick={() => setChapterId(String(chapter.id))} className="w-full text-left"><div className="text-sm font-bold">{chapter.order}. {chapter.title}</div><p className="mt-1 text-xs text-slate-500">{chapter.description || "Chapter materials and notes"}</p></button>
+                  <button onClick={() => setChapterId(String(chapter.id))} className="w-full text-left"><div className="text-sm font-bold">{chapter.order}. {chapter.title}</div><p className="mt-1 text-xs text-slate-500">{chapter.description || (selectedCourse ? "Chapter materials and notes" : "Program-level chapter")}</p></button>
                   <div className="mt-3 flex gap-3 border-t pt-3"><button onClick={() => setChapterForm({ ...chapter })} className="text-xs font-semibold text-slate-600">Edit</button><button onClick={() => deleteChapter(chapter)} className="text-xs font-semibold text-red-600">Delete</button></div>
                 </div>)}
               </div>
