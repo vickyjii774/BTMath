@@ -328,6 +328,11 @@ export default function AdminPage() {
   
   ];
 
+  const academicItems = managementItems.filter((item) =>
+    ["/admin/programs", "/admin/courses", "/admin/materials"].includes(item.href)
+  );
+  const operationsItems = managementItems.filter((item) => !academicItems.includes(item));
+
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
 
@@ -440,12 +445,12 @@ export default function AdminPage() {
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Control courses, access groups, payments, students, and website resources.
+              Build the academic structure, create courses, and organize every chapter and learning resource.
             </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {managementItems.map((item) => (
+            {academicItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -485,6 +490,29 @@ export default function AdminPage() {
 
           </div>
 
+        </section>
+
+        <section className="mt-12">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold">Platform Operations</h2>
+            <p className="mt-1 text-sm text-gray-500">Manage students, access permissions, payments and incoming inquiries.</p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {operationsItems.map((item) => (
+              <Link key={item.href} href={item.href} className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md">
+                <div className="flex items-start justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-xl">{item.icon}</span>
+                  <div className="flex items-center gap-2">
+                    {item.badge && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">{item.badge}</span>}
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">→</span>
+                  </div>
+                </div>
+                <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
+                <div className="mt-5 text-sm font-semibold text-black">Manage →</div>
+              </Link>
+            ))}
+          </div>
         </section>
 
       </div>
