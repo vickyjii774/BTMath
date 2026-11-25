@@ -15,7 +15,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-import { submitContactMessage } from "../../lib/api";
+import { submitContactMessage, getSocialLinks } from "../../lib/api";
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -27,6 +27,14 @@ export default function ContactPage() {
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
+  const [siteContent, setSiteContent] = useState(null);
+  const [socialLinks, setSocialLinks] = useState([]);
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    fetch(`${apiUrl}/site-content/`).then((r) => r.ok ? r.json() : null).then(setSiteContent).catch(() => {});
+    getSocialLinks().then((data) => setSocialLinks(Array.isArray(data) ? data : data?.results || [])).catch(() => {});
+  }, []);
+
 
   const handleChange = (e) => {
     setForm({
@@ -244,7 +252,7 @@ export default function ContactPage() {
                     </h3>
 
                     <p className="mt-1 text-gray-500">
-                      Kathmandu, Nepal
+                      {siteContent?.address || "Kathmandu, Nepal"}
                     </p>
                   </div>
 
@@ -263,7 +271,7 @@ export default function ContactPage() {
                     </h3>
 
                     <p className="mt-1 text-gray-500">
-                      support@btmath.com
+                      {siteContent?.contact_email || "support@btmath.com"}
                     </p>
                   </div>
 
@@ -282,7 +290,7 @@ export default function ContactPage() {
                     </h3>
 
                     <p className="mt-1 text-gray-500">
-                      +977-XXXXXXXXXX
+                      {siteContent?.contact_phone || "+977-XXXXXXXXXX"}
                     </p>
                   </div>
 
@@ -299,33 +307,15 @@ export default function ContactPage() {
 
                 <div className="mt-4 flex gap-3">
 
-                  <a
-                    href="#"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-gray-700"
-                  >
-                    <FaFacebookF />
-                  </a>
-
-                  <a
-                    href="#"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-gray-700"
-                  >
-                    <FaInstagram />
-                  </a>
-
-                  <a
-                    href="#"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-gray-700"
-                  >
-                    <FaYoutube />
-                  </a>
-
-                  <a
-                    href="#"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-gray-700"
-                  >
-                    <FaWhatsapp />
-                  </a>
+                  {socialLinks.map((item) => (
+                    <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer" title={item.title || item.platform}
+                      className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white transition hover:bg-blue-700">
+                      {String(item.platform).toLowerCase() === "facebook" ? <FaFacebookF /> :
+                       String(item.platform).toLowerCase() === "instagram" ? <FaInstagram /> :
+                       String(item.platform).toLowerCase() === "youtube" ? <FaYoutube /> :
+                       String(item.platform).toLowerCase() === "whatsapp" ? <FaWhatsapp /> : "↗"}
+                    </a>
+                  ))}
 
                 </div>
 
