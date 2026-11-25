@@ -2,10 +2,24 @@ from django.db import migrations
 
 
 def migrate_legacy_semesters(apps, schema_editor):
+    Category = apps.get_model("education", "Category")
     Semester = apps.get_model("education", "Semester")
     AcademicPeriod = apps.get_model("education", "AcademicPeriod")
     Course = apps.get_model("education", "Course")
     database = schema_editor.connection.alias
+
+    default_sections = [
+        ("school", "School Level", "School-level mathematics programs."),
+        ("plus2", "+2", "+2 mathematics programs."),
+        ("bachelor", "Bachelor", "Bachelor mathematics programs."),
+        ("master", "Master", "Master mathematics programs."),
+        ("ioe", "IOE", "IOE entrance mathematics preparation."),
+    ]
+    for level, name, description in default_sections:
+        Category.objects.using(database).get_or_create(
+            level=level,
+            defaults={"name": name, "description": description},
+        )
 
     legacy_semesters = (
         Semester.objects.using(database)
