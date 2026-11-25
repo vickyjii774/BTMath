@@ -309,8 +309,10 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
             }
           />
           <StatCard
-            label={userType === "staff" ? "Privileged Accounts" : "Staff / Admins"}
-            value={roleUsers.filter((u) => u.is_staff || u.is_superuser).length}
+            label={userType === "staff" ? "Superuser Accounts" : "Students with Access"}
+            value={userType === "staff"
+              ? roleUsers.filter((u) => u.is_superuser).length
+              : roleUsers.filter((u) => (u.active_access_groups || []).length > 0).length}
           />
         </div>
 
@@ -337,8 +339,12 @@ export default function AdminUsersManagementPage({ userType = "students" }) {
                 <option value="all">All Accounts ({roleUsers.length})</option>
                 <option value="active">Active Only</option>
                 <option value="disabled">Disabled Only</option>
-                <option value="staff">Staff Only</option>
-                <option value="super">Super Admin Only</option>
+                {userType === "staff" && (
+                  <>
+                    <option value="staff">Staff Only</option>
+                    <option value="super">Super Admin Only</option>
+                  </>
+                )}
               </select>
             </div>
           </div>
