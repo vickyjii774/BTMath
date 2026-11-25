@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
+/* BTMath uses a consistent light academic interface. Do not let the OS dark
+   preference turn inherited text light while page surfaces remain white. */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -12,18 +15,29 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
+  background: #ffffff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #ffffff;
+  color: #171717;
   font-family: Arial, Helvetica, sans-serif;
   cursor: default;
+}
+
+/* Keep form controls readable regardless of browser/OS appearance settings. */
+input,
+textarea,
+select {
+  color: #171717;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
 }
 
 /* Ergonomic cursor definitions: standard cursor for reading/copying text, pointer strictly on actionable controls */
