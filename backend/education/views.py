@@ -2081,24 +2081,18 @@ class AdminResourceAPIView(APIView):
 
 
         if hasattr(obj, "user_id"):
-
-
-
             try:
-
-                data["user_name"] = (
-
-                    obj.user.get_full_name()
-
-                    or obj.user.username
-
-                )
-
+                related_user = obj.user
+                related_profile = getattr(related_user, "profile", None)
+                data["user_name"] = related_user.get_full_name() or getattr(related_profile, "full_name", "") or related_user.username
+                data["user_username"] = related_user.username
+                data["user_email"] = related_user.email
+                data["student_id"] = getattr(related_profile, "student_id", "") or f"BTM-{related_user.pk:06d}"
             except Exception:
-
                 data["user_name"] = None
-
-
+                data["user_username"] = None
+                data["user_email"] = None
+                data["student_id"] = None
 
         return data
 
