@@ -5,6 +5,55 @@ import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
+
+// Make admin CMS requests resilient to an expired access token.
+// Refresh is attempted once; admin permissions are still enforced by Django.
+async function adminFetch(url, options = {}) {
+  let accessToken = localStorage.getItem("access_token");
+  const send = (token) => fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  let response = await send(accessToken);
+  if (response.status !== 401) return response;
+
+  const refreshToken = localStorage.getItem("refresh_token");
+  if (!refreshToken) {
+    localStorage.removeItem("access_token");
+    throw new Error("Your admin session has expired. Please log in again.");
+  }
+
+  let refreshResponse;
+  try {
+    refreshResponse = await fetch(`${API_URL}/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error("Could not refresh your admin session. Please try again.");
+  }
+
+  const refreshed = await refreshResponse.json().catch(() => ({}));
+  if (!refreshResponse.ok || !refreshed.access) {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    throw new Error("Your admin session has expired. Please log in again.");
+  }
+
+  accessToken = refreshed.access;
+  localStorage.setItem("access_token", accessToken);
+  if (refreshed.refresh) localStorage.setItem("refresh_token", refreshed.refresh);
+
+  response = await send(accessToken);
+  return response;
+}
+
 export default function AdminContentManager({ resource, title, description, fields, single = false }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(null);
@@ -19,7 +68,7 @@ export default function AdminContentManager({ resource, title, description, fiel
     setLoading(true); setError("");
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/admin/${resource}/`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await adminFetch(`${API_URL}/admin/${resource}/`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Unable to load content.");
       const rows = Array.isArray(data) ? data : data.results || [];
@@ -39,7 +88,7 @@ export default function AdminContentManager({ resource, title, description, fiel
       const token = localStorage.getItem("access_token");
       const targetId = single ? items[0]?.id : editingId;
       const url = editing && targetId ? `${API_URL}/admin/${resource}/${targetId}/` : `${API_URL}/admin/${resource}/`;
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method: editing && targetId ? "PUT" : "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -64,7 +113,7 @@ export default function AdminContentManager({ resource, title, description, fiel
   async function remove(id) {
     if (!confirm("Delete this item?")) return;
     try {
-      const response = await fetch(`${API_URL}/admin/${resource}/${id}/`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } });
+      const response = await adminFetch(`${API_URL}/admin/${resource}/${id}/`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } });
       if (!response.ok) throw new Error("Delete failed.");
       await load();
     } catch (e) { setError(e.message); }
