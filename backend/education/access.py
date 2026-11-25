@@ -24,6 +24,8 @@ def get_course_section(course):
     if not course or not course.program or not course.program.category:
         return None
     section = (course.program.category.level or "").strip().lower()
+    if section == "plus_two":
+        section = "plus2"
     return section or None
 
 
