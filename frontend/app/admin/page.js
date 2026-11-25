@@ -441,7 +441,7 @@ export default function AdminPage() {
         <section>
           <div className="mb-6">
             <h2 className="text-xl font-bold">
-              Management & Operations
+              Academic Management
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
