@@ -1936,7 +1936,8 @@ class AdminResourceAPIView(APIView):
 
     def get_permissions(self):
         permissions = super().get_permissions()
-        if getattr(self, "resource", None) in self.SUPERADMIN_ONLY_RESOURCES:
+        resource = self.kwargs.get("resource")
+        if resource in self.SUPERADMIN_ONLY_RESOURCES:
             permissions.append(IsSuperAdminUser())
         return permissions
 
