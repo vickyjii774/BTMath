@@ -84,6 +84,22 @@ export default function ProgramsPage() {
       .sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || Number(a.id) - Number(b.id));
   }
 
+  function descendantIds(periodId) {
+    if (!periodId) return new Set();
+    const blocked = new Set([Number(periodId)]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      periods.forEach((period) => {
+        if (period.parent != null && blocked.has(Number(period.parent)) && !blocked.has(Number(period.id))) {
+          blocked.add(Number(period.id));
+          changed = true;
+        }
+      });
+    }
+    return blocked;
+  }
+
   async function saveSection(event) {
     event.preventDefault();
     if (!sectionForm?.name.trim() || !sectionForm?.level.trim()) return;
@@ -266,7 +282,7 @@ export default function ProgramsPage() {
           <form onSubmit={savePeriod} className="space-y-4">
             <Field label="Period name"><input required value={periodForm.name} onChange={(e) => setPeriodForm({ ...periodForm, name: e.target.value })} placeholder="e.g. Grade 11, Semester 1, Year 1" className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
             <Field label="Period type"><select value={periodForm.period_type} onChange={(e) => setPeriodForm({ ...periodForm, period_type: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm">{["grade","year","semester","term","custom"].map((v) => <option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select></Field>
-            <Field label="Parent period (optional)"><select value={periodForm.parent || ""} onChange={(e) => setPeriodForm({ ...periodForm, parent: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm"><option value="">Top-level period</option>{periods.filter((p) => Number(p.program) === Number(periodForm.programId) && Number(p.id) !== Number(periodForm.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+            <Field label="Parent period (optional)"><select value={periodForm.parent || ""} onChange={(e) => setPeriodForm({ ...periodForm, parent: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm"><option value="">Top-level period</option>{periods.filter((p) => Number(p.program) === Number(periodForm.programId) && !descendantIds(periodForm.id).has(Number(p.id))).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             <Field label="Display order"><input type="number" min="1" value={periodForm.order || 1} onChange={(e) => setPeriodForm({ ...periodForm, order: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
             <Field label="Description"><textarea value={periodForm.description || ""} onChange={(e) => setPeriodForm({ ...periodForm, description: e.target.value })} rows={2} className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
             <div className="flex gap-2"><button disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">{saving ? "Saving…" : "Save period"}</button><button type="button" onClick={() => setPeriodForm(null)} className="rounded-lg border px-4 py-2.5 text-sm font-semibold">Cancel</button></div>
