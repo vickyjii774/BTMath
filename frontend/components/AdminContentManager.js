@@ -9,6 +9,7 @@ export default function AdminContentManager({ resource, title, description, fiel
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -28,18 +29,18 @@ export default function AdminContentManager({ resource, title, description, fiel
   }
   useEffect(() => { load(); }, [resource]);
 
-  function startNew() { setForm({ ...defaults }); setEditing(false); }
-  function startEdit(item) { setForm({ ...item }); setEditing(true); }
+  function startNew() { setForm({ ...defaults }); setEditing(false); setEditingId(null); }
+  function startEdit(item) { setForm({ ...item }); setEditing(true); setEditingId(item.id); }
   function change(name, value) { setForm((old) => ({ ...old, [name]: value })); }
 
   async function save(event) {
     event.preventDefault(); setSaving(true); setError("");
     try {
       const token = localStorage.getItem("access_token");
-      const current = single ? items[0] : null;
-      const url = editing && current ? `${API_URL}/admin/${resource}/${current.id}/` : `${API_URL}/admin/${resource}/`;
+      const targetId = single ? items[0]?.id : editingId;
+      const url = editing && targetId ? `${API_URL}/admin/${resource}/${targetId}/` : `${API_URL}/admin/${resource}/`;
       const response = await fetch(url, {
-        method: editing && current ? "PUT" : "POST",
+        method: editing && targetId ? "PUT" : "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
