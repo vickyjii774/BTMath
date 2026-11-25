@@ -733,3 +733,25 @@ export async function rejectPayment(paymentId, reason = "") {
     }),
   });
 }
+
+// ============================================================
+// STUDENT PROFILE & SECURITY
+// ============================================================
+
+export async function updateStudentProfile(profileData) {
+  return apiFetch("/auth/profile/", {
+    method: "PUT",
+    body: profileData instanceof FormData ? profileData : JSON.stringify(profileData),
+    headers: profileData instanceof FormData ? {} : undefined,
+  });
+}
+
+export async function changeStudentPassword(oldPassword, newPassword) {
+  return apiFetch("/auth/change-password/", {
+    method: "POST",
+    body: JSON.stringify({
+      old_password: oldPassword,
+      new_password: newPassword,
+    }),
+  });
+}
