@@ -26,7 +26,7 @@ export default function CourseCard({ course }) {
         {/* Top */}
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
 
-          <span className="rounded-md bg-gray-100 px-2.5 py-1 text-gray-700">
+          <span className="rounded-md bg-blue-50 px-2.5 py-1 text-blue-700">
             {course.program_name ||
               course.category_name ||
               "Mathematics"}
@@ -45,7 +45,7 @@ export default function CourseCard({ course }) {
         </div>
 
         {/* Title */}
-        <h3 className="mt-4 text-xl font-bold text-gray-900 transition group-hover:text-gray-700">
+        <h3 className="mt-4 text-xl font-bold text-gray-900 transition group-hover:text-blue-700">
           <Link href={`/courses/${slug}`}>
             {course.title}
           </Link>
