@@ -270,6 +270,11 @@ export async function getBachelorPrograms() {
 // 9. PLUS TWO COURSES
 // ============================================================
 
+export async function getPlusTwoPrograms() {
+  return apiFetch("/plus-two/");
+}
+
+
 export async function getPlusTwoCourses() {
   return apiFetch("/courses/?level=plus2");
 }
@@ -278,6 +283,11 @@ export async function getPlusTwoCourses() {
 // ============================================================
 // 10. MASTER COURSES
 // ============================================================
+
+export async function getMasterPrograms() {
+  return apiFetch("/master/");
+}
+
 
 export async function getMasterCourses() {
   return apiFetch("/courses/?level=master");
@@ -296,6 +306,11 @@ export async function getIOECourses() {
 // ============================================================
 // 12. SINGLE COURSE
 // ============================================================
+
+export async function getCourseDetail(slug) {
+  return apiFetch(`/courses/${encodeURIComponent(slug)}/`);
+}
+
 
 export async function getCourse(courseId) {
   return apiFetch(`/courses/${courseId}/`);
@@ -589,6 +604,26 @@ export async function toggleMaterialProgress(materialId) {
 // ============================================================
 
 // /auth/refresh/.
+
+
+export async function forgotPassword(email) {
+  return apiFetch("/auth/forgot-password/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+
+export async function resetPassword(token, newPassword) {
+  return apiFetch("/auth/reset-password/", {
+    method: "POST",
+    body: JSON.stringify({
+      token,
+      new_password: newPassword,
+      confirm_password: newPassword,
+    }),
+  });
+}
 
 
 export async function refreshAccessToken(refreshToken) {
