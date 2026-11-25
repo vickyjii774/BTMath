@@ -45,7 +45,17 @@ export default function AdminContentManager({ resource, title, description, fiel
         body: JSON.stringify(form),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || JSON.stringify(data.errors || data));
+      if (!response.ok) {
+        const fieldErrors = data.errors && typeof data.errors === "object"
+          ? Object.entries(data.errors).map(([field, messages]) =>
+              `${field}: ${Array.isArray(messages) ? messages.join(", ") : String(messages)}`
+            ).join("\\n")
+          : "";
+        const message = fieldErrors
+          ? `${data.detail || "Validation failed."}\\n${fieldErrors}`
+          : data.detail || data.error || JSON.stringify(data);
+        throw new Error(message);
+      }
       await load();
       if (!single) { setForm(null); setEditing(false); }
     } catch (e) { setError(e.message); } finally { setSaving(false); }
