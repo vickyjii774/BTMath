@@ -1252,6 +1252,14 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
             if not target_group:
                 target_group = AccessGroup.objects.filter(name__iexact=level, is_active=True).first()
 
+            # New academic sections use dynamic AccessGroups. Do not silently
+            # approve a section-wide purchase if its entitlement group is missing.
+            if not target_group and level not in VALID_SECTIONS and level != "plus_two":
+                raise ValueError(
+                    f"No active access group is configured for '{level}'. "
+                    f"Create an active access group with slug '{level}' before approving this payment."
+                )
+
         # Provision Access Group
         if target_group:
             UserAccessGroup.objects.update_or_create(
