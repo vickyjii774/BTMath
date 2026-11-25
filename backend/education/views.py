@@ -1166,9 +1166,14 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
 
         if not target_group and payment.course and payment.course.program and payment.course.program.category:
             level = payment.course.program.category.level
-            target_group = AccessGroup.objects.filter(slug__iexact=level.replace("-", "_")).first()
+            group_slugs = [level]
+            if level == "plus2":
+                group_slugs.append("plus_two")
+            elif level == "plus_two":
+                group_slugs.append("plus2")
+            target_group = AccessGroup.objects.filter(slug__in=group_slugs, is_active=True).first()
             if not target_group:
-                target_group = AccessGroup.objects.filter(name__iexact=level).first()
+                target_group = AccessGroup.objects.filter(name__iexact=level, is_active=True).first()
 
         # Provision Access Group
         if target_group:
@@ -1203,7 +1208,10 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
             )
 
         # Fallback legacy section access
-        grant_section_access_from_payment(payment, admin_user)
+        # Prefer the explicit access group. Keep legacy section grants only
+        # for courses whose category has not yet been configured with a group.
+        if not target_group:
+            grant_section_access_from_payment(payment, admin_user)
 
         # Audit log
         student_id = getattr(getattr(payment.user, "profile", None), "student_id", "")
