@@ -134,7 +134,7 @@ export default function MaterialsPage() {
       body.append("resource_url", materialForm.resource_url || "");
       body.append("content_text", materialForm.content_text || "");
       body.append("order", String(Number(materialForm.order) || 1));
-      body.append("is_published", String(Boolean(materialForm.is_published)));
+      body.append("is_published", materialForm.is_published ? "True" : "False");
       if (selectedFile) body.append("file", selectedFile);
       const path = materialForm.id ? `/admin/materials/${materialForm.id}/` : "/admin/materials/";
       await api(path, { method: materialForm.id ? "PUT" : "POST", body });
