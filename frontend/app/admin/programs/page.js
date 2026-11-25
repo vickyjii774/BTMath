@@ -105,7 +105,7 @@ export default function ProgramsPage() {
     if (!sectionForm?.name.trim() || !sectionForm?.level.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const payload = { ...sectionForm, name: sectionForm.name.trim(), level: sectionForm.level.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") };
+      const payload = { name: sectionForm.name.trim(), level: sectionForm.level.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, ""), description: sectionForm.description || "" };
       if (sectionForm.id) await request(`/admin/categories/${sectionForm.id}/`, { method: "PUT", body: JSON.stringify(payload) });
       else await request("/admin/categories/", { method: "POST", body: JSON.stringify(payload) });
       setSectionForm(null); setNotice("Academic section saved."); await loadAll();
@@ -272,7 +272,7 @@ export default function ProgramsPage() {
         {sectionForm && <Modal title={sectionForm.id ? "Edit academic section" : "Add academic section"} onClose={() => setSectionForm(null)}>
           <form onSubmit={saveSection} className="space-y-4">
             <Field label="Section name"><input required value={sectionForm.name} onChange={(e) => setSectionForm({ ...sectionForm, name: e.target.value })} placeholder="e.g. School Level, +2, Bachelor" className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
-            <Field label="Unique section key"><input required disabled={Boolean(sectionForm.id && ["plus2", "bachelor", "master", "ioe"].includes(sectionForm.level))} value={sectionForm.level} onChange={(e) => setSectionForm({ ...sectionForm, level: e.target.value })} placeholder="e.g. school, plus2, bachelor" className="w-full rounded-lg border px-3 py-2.5 text-sm disabled:bg-slate-100 disabled:text-slate-500" /><p className="mt-1 text-xs text-slate-500">Use a short key without spaces. Existing public sections keep their keys: plus2, bachelor, master and ioe.</p></Field>
+            <Field label="Unique section key"><input required disabled={Boolean(sectionForm.id && ["plus2", "bachelor", "master", "ioe"].includes(sectionForm.level))} value={sectionForm.level} onChange={(e) => setSectionForm({ ...sectionForm, level: e.target.value })} placeholder="e.g. school, plus2, bachelor" maxLength={20} className="w-full rounded-lg border px-3 py-2.5 text-sm disabled:bg-slate-100 disabled:text-slate-500" /><p className="mt-1 text-xs text-slate-500">Use a short key without spaces. Existing public sections keep their keys: plus2, bachelor, master and ioe.</p></Field>
             <Field label="Description"><textarea value={sectionForm.description || ""} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} rows={3} className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
             <div className="flex gap-2"><button disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">{saving ? "Saving…" : "Save section"}</button><button type="button" onClick={() => setSectionForm(null)} className="rounded-lg border px-4 py-2.5 text-sm font-semibold">Cancel</button></div>
           </form>
