@@ -2412,6 +2412,7 @@ class AdminResourceAPIView(APIView):
 
         data = request.data.copy()
         data.pop("id", None)
+        requested_payment_status = data.pop("status", None) if resource == "payments" else None
 
         try:
             self.prepare_foreign_keys(model, data)
@@ -2426,16 +2427,17 @@ class AdminResourceAPIView(APIView):
             obj.full_clean()
             obj.save()
 
-            # ========================================================
-            # PAYMENT APPROVAL / REJECTION → PROCESS DECISION
-            # ========================================================
-            if resource == "payments" and obj.status in ("approved", "rejected"):
-                process_payment_decision(
-                    payment=obj,
-                    decision=obj.status,
-                    admin_user=request.user,
-                    rejection_reason=data.get("rejection_reason", ""),
-                )
+            # Payment state changes must go through the transactional service.
+            if resource == "payments" and requested_payment_status:
+                if requested_payment_status in ("approved", "rejected"):
+                    obj = process_payment_decision(
+                        payment=obj,
+                        decision=requested_payment_status,
+                        admin_user=request.user,
+                        rejection_reason=data.get("rejection_reason", ""),
+                    )
+                elif requested_payment_status != obj.status:
+                    raise ValidationError({"status": "Use approved or rejected for a payment decision."})
 
             return Response(self.serialize_object(obj))
 
