@@ -36,6 +36,7 @@ export default function ProgramsPage() {
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [periods, setPeriods] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [expandedProgramId, setExpandedProgramId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,15 +51,17 @@ export default function ProgramsPage() {
     setLoading(true);
     setError("");
     try {
-      const [sectionData, programData, periodData] = await Promise.all([
+      const [sectionData, programData, periodData, courseData] = await Promise.all([
         request("/admin/categories/"),
         request("/admin/programs/"),
         request("/admin/academic-periods/"),
+        request("/admin/courses/"),
       ]);
       const nextCategories = Array.isArray(sectionData) ? sectionData : sectionData?.results || [];
       setCategories(nextCategories);
       setPrograms(Array.isArray(programData) ? programData : programData?.results || []);
       setPeriods(Array.isArray(periodData) ? periodData : periodData?.results || []);
+      setCourses(Array.isArray(courseData) ? courseData : courseData?.results || []);
       setSelectedCategoryId((current) => current && nextCategories.some((item) => item.id === current) ? current : nextCategories[0]?.id ?? null);
     } catch (err) {
       setError(err.message || "Unable to load academic programs.");
@@ -94,6 +97,9 @@ export default function ProgramsPage() {
   }
 
   async function deleteSection(section) {
+    const isCore = ["plus2", "bachelor", "master", "ioe"].includes(section.level);
+    if (isCore) { setError("Core public sections cannot be deleted. You can edit their display name and description."); return; }
+    if (programs.some((program) => Number(program.category) === Number(section.id))) { setError("This section still contains programs. Move or remove its programs before deleting the section."); return; }
     if (!window.confirm(`Delete ${section.name}? Its programs and academic periods may also be deleted.`)) return;
     try { await request(`/admin/categories/${section.id}/`, { method: "DELETE" }); setNotice("Section deleted."); await loadAll(); }
     catch (err) { setError(err.message); }
@@ -112,6 +118,7 @@ export default function ProgramsPage() {
   }
 
   async function deleteProgram(program) {
+    if (courses.some((course) => Number(course.program) === Number(program.id))) { setError("This program has courses attached. Move or remove those courses before deleting the program, so course purchases and student access are not affected."); return; }
     if (!window.confirm(`Delete ${program.name}? Its periods and related academic content may be affected.`)) return;
     try { await request(`/admin/programs/${program.id}/`, { method: "DELETE" }); setNotice("Program deleted."); await loadAll(); }
     catch (err) { setError(err.message); }
@@ -202,7 +209,7 @@ export default function ProgramsPage() {
                       </button>
                       <div className="mt-3 flex gap-2 border-t border-slate-200/70 pt-3">
                         <button onClick={() => setSectionForm({ ...section })} className="text-xs font-semibold text-slate-600 hover:text-indigo-700">Edit</button>
-                        <button onClick={() => deleteSection(section)} className="text-xs font-semibold text-red-600">Delete</button>
+                        {["plus2", "bachelor", "master", "ioe"].includes(section.level) ? <span className="text-xs font-semibold text-slate-400">Core section</span> : <button onClick={() => deleteSection(section)} className="text-xs font-semibold text-red-600">Delete</button>}
                       </div>
                     </div>;
                   })}
@@ -249,7 +256,7 @@ export default function ProgramsPage() {
         {sectionForm && <Modal title={sectionForm.id ? "Edit academic section" : "Add academic section"} onClose={() => setSectionForm(null)}>
           <form onSubmit={saveSection} className="space-y-4">
             <Field label="Section name"><input required value={sectionForm.name} onChange={(e) => setSectionForm({ ...sectionForm, name: e.target.value })} placeholder="e.g. School Level, +2, Bachelor" className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
-            <Field label="Unique section key"><input required value={sectionForm.level} onChange={(e) => setSectionForm({ ...sectionForm, level: e.target.value })} placeholder="e.g. school, plus2, bachelor" className="w-full rounded-lg border px-3 py-2.5 text-sm" /><p className="mt-1 text-xs text-slate-500">Use a short key without spaces. Existing public sections keep their keys: plus2, bachelor, master and ioe.</p></Field>
+            <Field label="Unique section key"><input required disabled={Boolean(sectionForm.id && ["plus2", "bachelor", "master", "ioe"].includes(sectionForm.level))} value={sectionForm.level} onChange={(e) => setSectionForm({ ...sectionForm, level: e.target.value })} placeholder="e.g. school, plus2, bachelor" className="w-full rounded-lg border px-3 py-2.5 text-sm disabled:bg-slate-100 disabled:text-slate-500" /><p className="mt-1 text-xs text-slate-500">Use a short key without spaces. Existing public sections keep their keys: plus2, bachelor, master and ioe.</p></Field>
             <Field label="Description"><textarea value={sectionForm.description || ""} onChange={(e) => setSectionForm({ ...sectionForm, description: e.target.value })} rows={3} className="w-full rounded-lg border px-3 py-2.5 text-sm" /></Field>
             <div className="flex gap-2"><button disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">{saving ? "Saving…" : "Save section"}</button><button type="button" onClick={() => setSectionForm(null)} className="rounded-lg border px-4 py-2.5 text-sm font-semibold">Cancel</button></div>
           </form>
