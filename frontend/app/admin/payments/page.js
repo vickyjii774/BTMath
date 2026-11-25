@@ -347,14 +347,20 @@ export default function AdminPaymentsPage() {
                             {p.user_email || p.email || p.user?.email || "—"}
                           </p>
                           <p className="mt-1 font-mono text-[11px] text-blue-700">
-                            {p.student_id || (p.user ? "BTM-" + String(p.user).padStart(6, "0") : "Student ID unavailable")}
+                            Student ID: {p.student_id || (p.user ? "BTM-" + String(p.user).padStart(6, "0") : "Unavailable")}
+                          </p>
+                          <p className="font-mono text-[11px] text-gray-500">
+                            Payment ID: #{p.id}
                           </p>
                         </td>
 
                         {/* Course */}
                         <td className="px-6 py-4">
                           <p className="font-semibold text-gray-900">
-                            {p.course_title || p.course?.title || `Course #${p.course}`}
+                            {p.course_title || p.course?.title || (p.course ? `Course #${p.course}` : "Course not specified")}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] text-gray-500">
+                            Course ID: {p.course?.id || p.course || "Unavailable"}
                           </p>
                           <p className="text-xs text-gray-500">
                             {new Date(p.created_at).toLocaleString()}
@@ -371,8 +377,9 @@ export default function AdminPaymentsPage() {
                           <span className="font-bold uppercase text-gray-700">
                             {p.payment_method || "Direct"}
                           </span>
-                          <div className="mt-0.5 font-mono text-xs text-blue-700">
-                            {p.transaction_code ? `Ref: ${p.transaction_code}` : "No Code"}
+                          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Transaction / Reference Code</div>
+                          <div className="mt-0.5 break-all font-mono text-xs text-blue-700">
+                            {p.transaction_code || "No Code Provided"}
                           </div>
                         </td>
 
