@@ -2,6 +2,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import CourseCard from "../../components/CourseCard";
 import { getPlusTwoPrograms, getCourses } from "../../lib/api";
+import { deduplicatePrograms } from "../../lib/academic";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function PlusTwoPage() {
       getCourses({ level: "plus2" }),
     ]);
 
-    programs = programData || [];
+    programs = deduplicatePrograms(programData || []);
     courses = courseData || [];
   } catch (error) {
     console.error("Failed to load +2 data:", error);
