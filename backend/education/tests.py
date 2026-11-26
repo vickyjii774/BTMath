@@ -1,5 +1,6 @@
 from decimal import Decimal
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.core import mail
 from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -25,8 +26,10 @@ from .models import (
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
+    UserCourseAccess,
 )
 from .access import has_course_access
+from .views import AdminResourceAPIView
 
 
 class BTMathBackendTests(TestCase):
@@ -101,6 +104,7 @@ class BTMathBackendTests(TestCase):
             chapter=self.chapter,
             title="Lesson 1.1: Introduction to Sets",
             video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            content="Premium lesson explanation that must stay private.",
             order=1
         )
         self.material_premium = Material.objects.create(
@@ -183,6 +187,7 @@ class BTMathBackendTests(TestCase):
     # =========================================================================
     # 3. Password Reset Workflow
     # =========================================================================
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", DEFAULT_FROM_EMAIL="BTMath <test@btmath.local>", FRONTEND_URL="https://btmath.example")
     def test_password_reset_flow(self):
         user = User.objects.create_user(
             username="forgot_pwd@example.com",
@@ -196,8 +201,11 @@ class BTMathBackendTests(TestCase):
             "email": "forgot_pwd@example.com"
         }, format="json")
         self.assertEqual(res_forgot.status_code, status.HTTP_200_OK)
-        token = res_forgot.data.get("dev_reset_token")
-        self.assertTrue(bool(token))
+        self.assertNotIn("dev_reset_token", res_forgot.data)
+        self.assertEqual(len(mail.outbox), 1)
+        token_obj = PasswordResetToken.objects.get(user=user, is_used=False)
+        token = token_obj.token
+        self.assertIn(token, mail.outbox[0].body)
 
         # Reset password
         res_reset = self.client.post("/api/auth/reset-password/", {
@@ -247,6 +255,10 @@ class BTMathBackendTests(TestCase):
         self.client.force_authenticate(user=student_a)
         res_a = self.client.get(f"/api/courses/{self.course_math11.slug}/")
         self.assertEqual(res_a.status_code, status.HTTP_200_OK)
+        lesson_a = res_a.data["chapters"][0]["lessons"][0]
+        self.assertFalse(lesson_a["is_locked"])
+        self.assertIn("Premium lesson explanation", lesson_a["content"])
+        self.assertTrue(lesson_a["video_url"])
         material_a = res_a.data["materials"][0]
         self.assertFalse(material_a["is_locked"])
         self.assertIn("Private protected lecture notes", material_a["content_text"])
@@ -255,6 +267,10 @@ class BTMathBackendTests(TestCase):
         self.client.force_authenticate(user=student_b)
         res_b = self.client.get(f"/api/courses/{self.course_math11.slug}/")
         self.assertEqual(res_b.status_code, status.HTTP_200_OK)
+        lesson_b = res_b.data["chapters"][0]["lessons"][0]
+        self.assertTrue(lesson_b["is_locked"])
+        self.assertEqual(lesson_b["content"], "")
+        self.assertEqual(lesson_b["video_url"], "")
         material_b = res_b.data["materials"][0]
         self.assertTrue(material_b["is_locked"])
         self.assertIn("This content is premium", material_b["content_text"])
@@ -325,6 +341,17 @@ class BTMathBackendTests(TestCase):
             target_id=str(payment_id)
         ).first()
         self.assertIsNotNone(audit)
+
+        # Re-approving the same payment must not duplicate entitlement or audit side effects.
+        self.client.post(f"/api/admin/payments/{payment_id}/approve/")
+        self.assertEqual(
+            AuditLog.objects.filter(
+                admin=self.admin_user,
+                action="PAYMENT_APPROVED",
+                target_id=str(payment_id),
+            ).count(),
+            1,
+        )
 
     # =========================================================================
     # 6. Payment Rejection
@@ -419,3 +446,244 @@ class BTMathBackendTests(TestCase):
         }, format="json")
         self.assertEqual(res_contact.status_code, status.HTTP_201_CREATED)
         self.assertEqual(ContactMessage.objects.count(), 1)
+
+    def test_payment_submission_uses_server_price_and_rejects_tampering(self):
+        student = User.objects.create_user(
+            username="tamper@example.com",
+            email="tamper@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        self.client.force_authenticate(user=student)
+
+        response = self.client.post("/api/payments/submit/", {
+            "course_id": self.course_math11.id,
+            "amount": "1.00",
+            "payment_method": "esewa",
+            "transaction_code": "TAMPER-001",
+        }, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Payment.objects.filter(user=student).count(), 0)
+
+        response = self.client.post("/api/payments/submit/", {
+            "course_id": self.course_math11.id,
+            "amount": "1500.00",
+            "payment_method": "esewa",
+            "transaction_code": "VALID-001",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Decimal(str(response.data["payment"]["amount"])), Decimal("1500.00"))
+
+    def test_unrelated_legacy_access_does_not_unlock_paid_course(self):
+        student = User.objects.create_user(
+            username="legacy@example.com",
+            email="legacy@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        UserCourseAccess.objects.create(
+            user=student,
+            package="Old unrelated package",
+            is_active=True,
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
+
+    def test_expired_access_group_does_not_unlock_paid_course(self):
+        student = User.objects.create_user(
+            username="expired@example.com",
+            email="expired@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        UserAccessGroup.objects.create(
+            user=student,
+            access_group=self.ag_plus_two,
+            is_active=True,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
+
+    def test_locked_material_progress_cannot_be_toggled(self):
+        student = User.objects.create_user(
+            username="progress-locked@example.com",
+            email="progress-locked@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        self.client.force_authenticate(user=student)
+
+        response = self.client.post(f"/api/progress/toggle/{self.material_premium.id}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_expired_course_purchase_does_not_unlock_course(self):
+        student = User.objects.create_user(
+            username="expired-purchase@example.com",
+            email="expired-purchase@example.com",
+            password="Password123",
+        )
+        UserProfile.objects.create(user=student)
+        Purchase.objects.create(
+            user=student,
+            course=self.course_math11,
+            amount=Decimal("1500.00"),
+            is_active=True,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        self.assertFalse(has_course_access(student, self.course_math11))
+
+
+class AcademicAdminHierarchyTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username="academic-admin",
+            email="academic-admin@example.com",
+            password="TestAdminPassword123!",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
+    def test_admin_material_boolean_values_accept_multipart_strings(self):
+        view = AdminResourceAPIView()
+        published = {"is_published": "true"}
+        unpublished = {"is_published": "false"}
+
+        view.normalize_model_fields(Material, published)
+        view.normalize_model_fields(Material, unpublished)
+
+        self.assertIs(published["is_published"], True)
+        self.assertIs(unpublished["is_published"], False)
+
+    def test_admin_can_create_sections_programs_and_nested_periods(self):
+        section_response = self.client.post(
+            "/api/admin/categories/",
+            {
+                "name": "Foundation",
+                "level": "foundation",
+                "description": "Additional academic section",
+            },
+            format="json",
+        )
+        self.assertEqual(section_response.status_code, status.HTTP_201_CREATED)
+        section_id = section_response.data["id"]
+
+        program_response = self.client.post(
+            "/api/admin/programs/",
+            {
+                "category": section_id,
+                "name": "Secondary Mathematics",
+                "description": "",
+                "duration_info": "2 years",
+            },
+            format="json",
+        )
+        self.assertEqual(program_response.status_code, status.HTTP_201_CREATED)
+        program_id = program_response.data["id"]
+
+        grade_response = self.client.post(
+            "/api/admin/academic-periods/",
+            {
+                "program": program_id,
+                "parent": None,
+                "name": "Grade 11",
+                "period_type": "grade",
+                "order": 1,
+                "description": "",
+            },
+            format="json",
+        )
+        self.assertEqual(grade_response.status_code, status.HTTP_201_CREATED)
+        grade_id = grade_response.data["id"]
+
+        semester_response = self.client.post(
+            "/api/admin/academic-periods/",
+            {
+                "program": program_id,
+                "parent": grade_id,
+                "name": "Term 1",
+                "period_type": "term",
+                "order": 1,
+                "description": "",
+            },
+            format="json",
+        )
+        self.assertEqual(semester_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(semester_response.data["parent"], grade_id)
+
+        sections_response = self.client.get("/api/admin/categories/")
+        self.assertEqual(sections_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            any(item["id"] == section_id for item in sections_response.data)
+        )
+        
+    def test_staff_admin_can_manage_operations_but_not_academic_content(self):
+        staff_admin = User.objects.create_user(
+            username="operations-admin",
+            email="operations-admin@example.com",
+            password="OperationsPassword123!",
+            is_staff=True,
+            is_superuser=False,
+        )
+        self.client.force_authenticate(user=staff_admin)
+
+        courses_response = self.client.get("/api/admin/courses/")
+        categories_response = self.client.get("/api/admin/categories/")
+        payments_response = self.client.get("/api/admin/payments/")
+        contacts_response = self.client.get("/api/admin/contacts/")
+
+        self.assertEqual(courses_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(categories_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(payments_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(contacts_response.status_code, status.HTTP_200_OK)
+
+    def test_superuser_can_manage_academic_content(self):
+        superadmin = User.objects.create_superuser(
+            username="academic-superadmin",
+            email="academic-superadmin@example.com",
+            password="AcademicPassword123!",
+        )
+        self.client.force_authenticate(user=superadmin)
+
+        response = self.client.get("/api/admin/courses/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        identity_response = self.client.get("/api/auth/me/")
+        self.assertEqual(identity_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(identity_response.data["is_superuser"])
+
+    def test_dynamic_academic_section_access_group_unlocks_all_its_courses(self):
+        phd_category = Category.objects.create(
+            name="PhD",
+            level="phd",
+            description="Doctoral Mathematics",
+        )
+        phd_program = Program.objects.create(
+            category=phd_category,
+            name="PhD Mathematics",
+        )
+        phd_course = Course.objects.create(
+            title="Advanced Research Mathematics",
+            slug="advanced-research-mathematics",
+            program=phd_program,
+            price=Decimal("2500.00"),
+        )
+        phd_group = AccessGroup.objects.create(
+            name="PHD",
+            slug="phd",
+            description="Access to all PhD Mathematics courses",
+        )
+        student = User.objects.create_user(
+            username="phd-student",
+            email="phd-student@example.com",
+            password="StudentPassword123!",
+        )
+        UserAccessGroup.objects.create(
+            user=student,
+            access_group=phd_group,
+            is_active=True,
+        )
+
+        # The course itself has no explicit access_group; the matching
+        # category-level group should still unlock every course in the section.
+        self.assertTrue(has_course_access(student, phd_course))
+

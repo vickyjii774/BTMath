@@ -146,7 +146,7 @@ export default function CourseDetailPage({ params }) {
                   ) : (
                     <Link
                       href={`/purchase/${course.id}`}
-                      className="block w-full rounded-xl bg-black py-3.5 text-sm font-bold text-white shadow-md hover:bg-gray-800 transition"
+                      className="block w-full rounded-xl bg-blue-700 py-3.5 text-sm font-bold text-white shadow-md hover:bg-blue-800 transition"
                     >
                       {isFree ? "Enroll Now (Free)" : "Purchase Course (eSewa / Khalti / Bank)"}
                     </Link>

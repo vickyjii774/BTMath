@@ -9,19 +9,10 @@ import secrets
 
 
 class Category(models.Model):
-    LEVEL_CHOICES = [
-        ("plus2", "+2"),
-        ("bachelor", "Bachelor"),
-        ("master", "Master"),
-        ("ioe", "IOE"),
-    ]
-
+    # Stable machine key used by public pages (plus2, bachelor, master, ioe).
+    # Admin-created sections may use their own unique key without a code change.
     name = models.CharField(max_length=100)
-    level = models.CharField(
-        max_length=20,
-        choices=LEVEL_CHOICES,
-        unique=True
-    )
+    level = models.SlugField(max_length=20, unique=True)
     description = models.TextField(blank=True)
     image = models.ImageField(
         upload_to="categories/",
@@ -1020,6 +1011,9 @@ class ContactMessage(models.Model):
     is_replied = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     admin_notes = models.TextField(blank=True)
+    reply_message = models.TextField(blank=True)
+    replied_at = models.DateTimeField(null=True, blank=True)
+    replied_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="contact_replies")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1062,6 +1056,43 @@ class SocialLink(models.Model):
 
     def __str__(self):
         return f"{self.get_platform_display()} ({self.url})"
+
+
+class TeamMember(models.Model):
+    name = models.CharField(max_length=150)
+    role = models.CharField(max_length=150)
+    bio = models.TextField(blank=True)
+    image_url = models.URLField(blank=True)
+    email = models.EmailField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    order = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.name} — {self.role}"
+
+
+class SiteContent(models.Model):
+    key = models.SlugField(max_length=40, unique=True, default="main")
+    about_title = models.CharField(max_length=200, default="About BTMath")
+    about_intro = models.TextField(blank=True)
+    about_story = models.TextField(blank=True)
+    mission = models.TextField(blank=True)
+    vision = models.TextField(blank=True)
+    values = models.TextField(blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_phone = models.CharField(max_length=50, blank=True)
+    whatsapp_number = models.CharField(max_length=50, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    support_hours = models.CharField(max_length=255, blank=True)
+    contact_description = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.about_title
 
 
 class SiteStatistic(models.Model):

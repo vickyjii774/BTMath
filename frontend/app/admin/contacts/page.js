@@ -1,13 +1,14 @@
 "use client";
-
-import AdminResourcePage from "../../../components/AdminResourcePage";
-
-export default function ContactsAdminPage() {
-  return (
-    <AdminResourcePage
-      resource="contacts"
-      title="Contact Messages & Inquiries"
-      description="Review student contact messages, questions, and inquiry submissions."
-    />
-  );
+import { useEffect,useState } from "react";
+import Link from "next/link";
+const API_URL=process.env.NEXT_PUBLIC_API_URL||"http://127.0.0.1:8000/api";
+export default function ContactsAdminPage(){
+ const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[notice,setNotice]=useState(""),[replying,setReplying]=useState(null),[reply,setReply]=useState(""),[sending,setSending]=useState(false);
+ async function load(){setLoading(true);setError("");try{const r=await fetch(`${API_URL}/admin/contacts/`,{headers:{Authorization:`Bearer ${localStorage.getItem("access_token")}`}});const d=await r.json();if(!r.ok)throw new Error(d.detail||"Unable to load inquiries.");setItems(Array.isArray(d)?d:d.results||[]);}catch(e){setError(e.message)}finally{setLoading(false)}}
+ useEffect(()=>{load()},[]);
+ async function send(e){e.preventDefault();if(!replying||!reply.trim())return;setSending(true);setError("");setNotice("");try{const r=await fetch(`${API_URL}/admin/contacts/${replying.id}/reply/`,{method:"POST",headers:{Authorization:`Bearer ${localStorage.getItem("access_token")}`,"Content-Type":"application/json"},body:JSON.stringify({reply})});const d=await r.json();if(!r.ok)throw new Error(d.detail||"Email could not be sent.");setNotice(d.message||"Reply sent.");setReplying(null);setReply("");await load()}catch(e){setError(e.message)}finally{setSending(false)}}
+ return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6"><div className="mx-auto max-w-6xl"><Link href="/admin" className="text-sm text-slate-500">← Dashboard</Link><div className="mt-4"><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Inbox</p><h1 className="mt-2 text-3xl font-black">Contact Inquiries</h1><p className="mt-2 text-sm text-slate-500">Read incoming messages and email a response directly from BTMath.</p></div>
+ {notice&&<div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{notice}</div>}{error&&<div className="mt-5 whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+ {replying&&<form onSubmit={send} className="mt-6 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm"><div className="flex justify-between gap-4"><div><h2 className="font-bold">Reply to {replying.name}</h2><p className="text-sm text-slate-500">{replying.email} · {replying.subject}</p></div><button type="button" onClick={()=>setReplying(null)} className="text-sm text-slate-500">Close</button></div><textarea required rows={6} value={reply} onChange={e=>setReply(e.target.value)} placeholder="Write your reply..." className="mt-5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"/><p className="mt-2 text-xs text-slate-500">Sends an email using the configured BTMath support address.</p><button disabled={sending} className="mt-4 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{sending?"Sending...":"Send Email Reply"}</button></form>}
+ <div className="mt-7 space-y-4">{loading?<div className="rounded-2xl bg-white p-10 text-center text-slate-500">Loading inquiries...</div>:items.length===0?<div className="rounded-2xl bg-white p-10 text-center text-slate-500">No inquiries yet.</div>:items.map(item=><article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-bold">{item.name}</h2><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px]">#{item.id}</span><span className={`rounded-full px-2 py-1 text-[11px] font-bold ${item.is_replied?"bg-green-100 text-green-800":"bg-amber-100 text-amber-800"}`}>{item.is_replied?"Replied":"Awaiting reply"}</span></div><a href={`mailto:${item.email}`} className="mt-1 block text-sm text-blue-700">{item.email}</a><p className="mt-1 text-xs text-slate-400">{item.phone||"No phone"} · {item.created_at?new Date(item.created_at).toLocaleString():""}</p></div><button onClick={()=>{setReplying(item);setReply("")}} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white">Reply by Email</button></div><h3 className="mt-4 text-sm font-bold">{item.subject}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.message}</p>{item.reply_message&&<div className="mt-4 rounded-xl bg-green-50 p-4"><p className="text-xs font-bold uppercase text-green-800">Last email reply</p><p className="mt-2 whitespace-pre-wrap text-sm text-green-950">{item.reply_message}</p><p className="mt-2 text-xs text-green-700">{item.replied_at?new Date(item.replied_at).toLocaleString():""}</p></div>}</article>)}</div></div></main>;
 }

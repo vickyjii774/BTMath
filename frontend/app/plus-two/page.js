@@ -2,6 +2,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import CourseCard from "../../components/CourseCard";
 import { getPlusTwoPrograms, getCourses } from "../../lib/api";
+import { deduplicatePlusTwoPrograms, formatAcademicPeriodName } from "../../lib/academic";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function PlusTwoPage() {
       getCourses({ level: "plus2" }),
     ]);
 
-    programs = programData || [];
+    programs = deduplicatePlusTwoPrograms(programData || []);
     courses = courseData || [];
   } catch (error) {
     console.error("Failed to load +2 data:", error);
@@ -140,13 +141,10 @@ export default async function PlusTwoPage() {
                         </h4>
 
                         <div className="mt-5 grid gap-5 md:grid-cols-2">
-                          {periods.map((period) => {
+                          {periods.map((period, periodIndex) => {
                             const periodId = period.id || period._id;
 
-                            const periodName =
-                              period.name ||
-                              period._name ||
-                              "Academic Period";
+                            const periodName = formatAcademicPeriodName(period, periodIndex);
 
                             const periodDescription =
                               period.description ||
@@ -197,14 +195,11 @@ export default async function PlusTwoPage() {
                                 {/* Sub Periods */}
                                 {subPeriods.length > 0 && (
                                   <div className="mt-5 space-y-2">
-                                    {subPeriods.map((subPeriod) => {
+                                    {subPeriods.map((subPeriod, subPeriodIndex) => {
                                       const subId =
                                         subPeriod.id || subPeriod._id;
 
-                                      const subName =
-                                        subPeriod.name ||
-                                        subPeriod._name ||
-                                        "";
+                                      const subName = formatAcademicPeriodName(subPeriod, subPeriodIndex);
 
                                       return (
                                         <div

@@ -4,10 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import CourseCard from "../../components/CourseCard";
-import { getCourses } from "../../lib/api";
+import { getCategories, getCourses } from "../../lib/api";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,6 +17,23 @@ export default function CoursesPage() {
   useEffect(() => {
     fetchCourses();
   }, [selectedLevel]);
+
+  useEffect(() => {
+    let active = true;
+
+    getCategories()
+      .then((data) => {
+        if (active) setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error("ACADEMIC CATEGORIES ERROR:", err));
+
+    const initialLevel = new URLSearchParams(window.location.search).get("level");
+    if (initialLevel) setSelectedLevel(initialLevel);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function fetchCourses(search = searchQuery) {
     setLoading(true);
@@ -42,10 +60,10 @@ export default function CoursesPage() {
 
   const levels = [
     { id: "all", label: "All Levels" },
-    { id: "plus2", label: "+2 (Grade 11 & 12)" },
-    { id: "bachelor", label: "Bachelor" },
-    { id: "master", label: "Master" },
-    { id: "ioe", label: "IOE Mathematics" },
+    ...categories.map((category) => ({
+      id: category.level,
+      label: category.name,
+    })),
   ];
 
   return (
@@ -70,8 +88,8 @@ export default function CoursesPage() {
                   onClick={() => setSelectedLevel(lvl.id)}
                   className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                     selectedLevel === lvl.id
-                      ? "bg-black text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-blue-700 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
                   {lvl.label}
@@ -86,11 +104,11 @@ export default function CoursesPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search courses or topics..."
-                className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm focus:border-black focus:outline-none"
+                className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm focus:border-blue-600 focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded-lg bg-black px-4 py-1.5 text-xs font-bold text-white hover:bg-gray-800"
+                className="rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-800"
               >
                 Search
               </button>
@@ -103,7 +121,7 @@ export default function CoursesPage() {
       <section className="mx-auto max-w-7xl px-6 py-12">
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-black" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-700" />
           </div>
         ) : courses.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,4 +1,6 @@
+from django.db.models import Q
 from django.utils import timezone
+
 from .models import (
     UserSectionAccess,
     UserAccessGroup,
@@ -8,143 +10,125 @@ from .models import (
 )
 
 
-VALID_SECTIONS = {
-    "plus2",
-    "bachelor",
-    "master",
-    "ioe",
+VALID_SECTIONS = {"plus2", "bachelor", "master", "ioe"}
+SECTION_GROUP_SLUGS = {
+    "plus2": ("plus2", "plus_two"),
+    "bachelor": ("bachelor",),
+    "master": ("master",),
+    "ioe": ("ioe",),
 }
 
 
 def get_course_section(course):
-    """
-    Returns the BTMath section that owns this course.
-    """
-    if not course:
+    """Return the dynamic academic section slug that owns a course."""
+    if not course or not course.program or not course.program.category:
         return None
+    section = (course.program.category.level or "").strip().lower()
+    if section == "plus_two":
+        section = "plus2"
+    return section or None
 
-    if not course.program:
-        return None
 
-    if not course.program.category:
-        return None
-
-    section = course.program.category.level
-    if section in VALID_SECTIONS:
-        return section
-
-    return None
+def _account_is_eligible(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    profile = getattr(user, "profile", None)
+    return not (profile and profile.is_disabled)
 
 
 def has_section_access(user, section):
-    """
-    Check whether a user has active access to a BTMath section.
-    """
-    if not user or not user.is_authenticated:
+    """Check an active section entitlement, including legacy section grants."""
+    if not _account_is_eligible(user):
         return False
-
     if user.is_staff or user.is_superuser:
         return True
 
-    profile = getattr(user, "profile", None)
-    if profile and profile.is_disabled:
+    section = (section or "").strip().lower()
+    if not section:
         return False
 
+    now = timezone.now()
+    # Dynamic AccessGroups support newly-created academic sections such as
+    # PhD without requiring a database migration or hardcoded section list.
+    slugs = SECTION_GROUP_SLUGS.get(section, (section,))
+    group_grant = UserAccessGroup.objects.filter(
+        user=user,
+        access_group__slug__in=slugs,
+        access_group__is_active=True,
+        is_active=True,
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
+    if group_grant:
+        return True
+
+    # UserSectionAccess is a legacy entitlement table with fixed choices.
+    # Keep it for the original four sections only.
     if section not in VALID_SECTIONS:
         return False
 
-    # Check dynamic access group with matching code/name first (e.g. PLUS_TWO)
-    access_group = UserAccessGroup.objects.filter(
-        user=user,
-        access_group__slug__iexact=section.replace("-", "_"),
-        is_active=True,
-    ).first()
-    if access_group:
-        if not access_group.expires_at or access_group.expires_at > timezone.now():
-            return True
-
-    # Fallback to UserSectionAccess table
-    access = UserSectionAccess.objects.filter(
+    return UserSectionAccess.objects.filter(
         user=user,
         section=section,
         is_active=True,
-    ).first()
-
-    if not access:
-        return False
-
-    if access.expires_at and access.expires_at <= timezone.now():
-        return False
-
-    return True
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists()
 
 
 def has_course_access(user, course):
     """
-    Primary Access Check:
-    1. Superuser / Staff has full access
-    2. Disabled accounts have no access
-    3. Free courses are accessible to all authenticated users
-    4. Direct active Enrollment grants access
-    5. Active AccessGroup assigned to the course grants access
-    6. Active Purchase for course or its AccessGroup grants access
-    7. Backward-compatible fallback to section access
+    Resolve course access from explicit, active entitlements only.
+
+    Legacy UserCourseAccess records are honoured only when they explicitly
+    represent the named full-platform package; an arbitrary active legacy row
+    must never unlock every paid course.
     """
-    if not user or not user.is_authenticated:
+    if not _account_is_eligible(user) or not course:
         return False
 
     if user.is_staff or user.is_superuser:
         return True
 
-    profile = getattr(user, "profile", None)
-    if profile and profile.is_disabled:
-        return False
-
-    if not course:
-        return False
-
-    # Free course
     if getattr(course, "is_free", False) or getattr(course, "course_type", "") == "free":
         return True
 
-    # Check direct active enrollment
-    if Enrollment.objects.filter(user=user, course=course, status="active").exists():
+    now = timezone.now()
+    if Enrollment.objects.filter(
+        user=user,
+        course=course,
+        status="active",
+    ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=now)).exists():
         return True
 
-    # Check Access Group if course belongs to one
-    if course.access_group:
-        user_ag = UserAccessGroup.objects.filter(
+    if course.access_group_id:
+        if UserAccessGroup.objects.filter(
             user=user,
-            access_group=course.access_group,
+            access_group_id=course.access_group_id,
+            access_group__is_active=True,
             is_active=True,
-        ).first()
-        if user_ag:
-            if not user_ag.expires_at or user_ag.expires_at > timezone.now():
-                return True
+        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists():
+            return True
 
-    # Check active Purchase
-    purchase = Purchase.objects.filter(
+    purchase_scope = Q(course=course)
+    if course.access_group_id:
+        purchase_scope |= Q(
+            access_group_id=course.access_group_id,
+            access_group__is_active=True,
+        )
+    purchase_query = Purchase.objects.filter(
         user=user,
         is_active=True,
     ).filter(
-        course=course
-    ) | Purchase.objects.filter(
+        Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+    ).filter(purchase_scope)
+    if purchase_query.exists():
+        return True
+
+    # Backward compatibility: only the explicitly named all-platform package
+    # grants global access. Other legacy rows are not global entitlements.
+    if UserCourseAccess.objects.filter(
         user=user,
         is_active=True,
-        access_group=course.access_group
-    ) if course.access_group else Purchase.objects.filter(user=user, course=course, is_active=True)
-
-    if purchase.exists():
+        package__iexact="BTMath Complete Access",
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).exists():
         return True
 
-    # Fallback to legacy UserCourseAccess
-    if UserCourseAccess.objects.filter(user=user, is_active=True).exists():
-        return True
-
-    # Fallback to legacy section access
     section = get_course_section(course)
-    if section:
-        return has_section_access(user, section)
-
-    return False
-
+    return bool(section and has_section_access(user, section))

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "../../../lib/api";
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api").replace(/\/$/, "");
+
 export default function AdminLoginPage() {
   const router = useRouter();
 
@@ -33,7 +35,6 @@ export default function AdminLoginPage() {
         password
       );
 
-      console.log("ADMIN LOGIN RESPONSE:", data);
 
       if (!data?.access) {
         throw new Error(
@@ -73,7 +74,7 @@ export default function AdminLoginPage() {
       // 5. Verify administrator access
       // --------------------------------
       const adminResponse = await fetch(
-        "http://127.0.0.1:8000/api/admin/dashboard/",
+        `${API_URL}/admin/dashboard/`,
         {
           method: "GET",
           headers: {
@@ -81,11 +82,6 @@ export default function AdminLoginPage() {
             "Content-Type": "application/json",
           },
         }
-      );
-
-      console.log(
-        "ADMIN API STATUS:",
-        adminResponse.status
       );
 
       let adminData = {};
@@ -96,19 +92,10 @@ export default function AdminLoginPage() {
         adminData = {};
       }
 
-      console.log(
-        "ADMIN API RESPONSE:",
-        adminData
-      );
-
       // --------------------------------
       // 6. Admin verified
       // --------------------------------
       if (adminResponse.ok) {
-        console.log(
-          "ADMIN ACCESS GRANTED"
-        );
-
         router.replace("/admin");
         return;
       }
@@ -215,7 +202,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin username"
                   autoComplete="username"
                   disabled={loading}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-1 focus:ring-black disabled:bg-gray-100"
                 />
 
               </div>
@@ -240,7 +227,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin password"
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-1 focus:ring-black disabled:bg-gray-100"
                 />
 
               </div>
@@ -256,7 +243,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+                className="w-full rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 {loading
                   ? "Verifying administrator..."

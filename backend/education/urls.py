@@ -40,6 +40,9 @@ from .views import (
     RecordSiteVisitAPIView,
     ContactMessageCreateAPIView,
     SocialLinkListAPIView,
+    SiteContentAPIView,
+    TeamMemberListAPIView,
+    AdminContactReplyAPIView,
 
     # Admin Management
     AdminDashboardView,
@@ -253,6 +256,9 @@ urlpatterns = [
         SocialLinkListAPIView.as_view(),
         name="social-links-list-api",
     ),
+    path("site-content/", SiteContentAPIView.as_view(), name="site-content-api"),
+    path("team/", TeamMemberListAPIView.as_view(), name="team-list-api"),
+
 
 
     # ============================================================
@@ -360,6 +366,24 @@ urlpatterns = [
         name="admin-request-detail",
     ),
 
+
+    # ------------------------------------------------------------
+    # ACADEMIC SECTIONS
+    # ------------------------------------------------------------
+
+    path(
+        "admin/categories/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "categories"},
+        name="admin-categories",
+    ),
+
+    path(
+        "admin/categories/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "categories"},
+        name="admin-category-detail",
+    ),
 
     # ------------------------------------------------------------
     # PROGRAMS
@@ -631,6 +655,8 @@ urlpatterns = [
         },
         name="admin-contact-detail",
     ),
+    path("admin/contacts/<int:pk>/reply/", AdminContactReplyAPIView.as_view(), name="admin-contact-reply"),
+
 
     # ------------------------------------------------------------
     # SOCIAL LINKS
@@ -652,6 +678,38 @@ urlpatterns = [
             "resource": "social-links",
         },
         name="admin-social-link-detail",
+    ),
+
+    # ------------------------------------------------------------
+    # WEBSITE CONTENT & TEAM
+    # ------------------------------------------------------------
+
+    path(
+        "admin/site-content/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "site-content"},
+        name="admin-site-content",
+    ),
+
+    path(
+        "admin/site-content/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "site-content"},
+        name="admin-site-content-detail",
+    ),
+
+    path(
+        "admin/team-members/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "team-members"},
+        name="admin-team-members",
+    ),
+
+    path(
+        "admin/team-members/<int:pk>/",
+        AdminResourceAPIView.as_view(),
+        {"resource": "team-members"},
+        name="admin-team-member-detail",
     ),
 
     # ------------------------------------------------------------

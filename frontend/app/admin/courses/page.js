@@ -11,9 +11,9 @@ const EMPTY_FORM = {
   title: "",
   slug: "",
   description: "",
+  category: "",
   program: "",
   academic_period: "",
-  subject: "",
   price: "0",
   discount_price: "0",
   course_type: "paid",
@@ -25,9 +25,9 @@ export default function AdminCoursesPage() {
   const router = useRouter();
 
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [periods, setPeriods] = useState([]);
-  const [subjects, setSubjects] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -144,6 +144,11 @@ export default function AdminCoursesPage() {
     );
   }
 
+  async function loadCategories() {
+    const data = await apiFetch("/admin/categories/");
+    setCategories(Array.isArray(data) ? data : []);
+  }
+
   async function loadPrograms() {
     const data = await apiFetch(
       "/admin/programs/"
@@ -168,18 +173,6 @@ export default function AdminCoursesPage() {
     );
   }
 
-  async function loadSubjects() {
-    const data = await apiFetch(
-      "/admin/subjects/"
-    );
-
-    setSubjects(
-      Array.isArray(data)
-        ? data
-        : []
-    );
-  }
-
   async function loadAll() {
     setLoading(true);
     setError("");
@@ -187,9 +180,9 @@ export default function AdminCoursesPage() {
     try {
       await Promise.all([
         loadCourses(),
+        loadCategories(),
         loadPrograms(),
         loadPeriods(),
-        loadSubjects(),
       ]);
     } catch (err) {
       console.error(err);
@@ -210,6 +203,11 @@ export default function AdminCoursesPage() {
   // ============================================================
   // FILTERED OPTIONS
   // ============================================================
+
+  const filteredPrograms = useMemo(() => {
+    if (!form.category) return programs;
+    return programs.filter((program) => String(program.category) === String(form.category));
+  }, [programs, form.category]);
 
   const selectedProgram = useMemo(
     () =>
@@ -232,34 +230,6 @@ export default function AdminCoursesPage() {
         String(form.program)
     );
   }, [periods, form.program]);
-
-  const filteredSubjects = useMemo(() => {
-    let result = subjects;
-
-    if (form.program) {
-      result = result.filter(
-        (subject) =>
-          String(subject.program) ===
-          String(form.program)
-      );
-    }
-
-    if (form.academic_period) {
-      result = result.filter(
-        (subject) =>
-          String(
-            subject.academic_period
-          ) ===
-          String(form.academic_period)
-      );
-    }
-
-    return result;
-  }, [
-    subjects,
-    form.program,
-    form.academic_period,
-  ]);
 
   // ============================================================
   // SEARCH
@@ -291,12 +261,6 @@ export default function AdminCoursesPage() {
           course.program_name || ""
         )
           .toLowerCase()
-          .includes(value) ||
-
-        String(
-          course.subject_name || ""
-        )
-          .toLowerCase()
           .includes(value)
       );
     });
@@ -323,20 +287,17 @@ export default function AdminCoursesPage() {
           : value,
     }));
 
+    if (name === "category") {
+      setForm((previous) => ({ ...previous, program: "", academic_period: "" }));
+    }
+
     if (name === "program") {
       setForm((previous) => ({
         ...previous,
         academic_period: "",
-        subject: "",
       }));
     }
 
-    if (name === "academic_period") {
-      setForm((previous) => ({
-        ...previous,
-        subject: "",
-      }));
-    }
   }
 
   function resetForm() {
@@ -356,7 +317,9 @@ export default function AdminCoursesPage() {
   function openEdit(course) {
     setEditingId(course.id);
 
+    const courseProgram = programs.find((item) => String(item.id) === String(course.program));
     setForm({
+      category: courseProgram?.category ? String(courseProgram.category) : "",
       title: course.title || "",
       slug: course.slug || "",
       description:
@@ -367,9 +330,6 @@ export default function AdminCoursesPage() {
 
       academic_period:
         course.academic_period || "",
-
-      subject:
-        course.subject || "",
 
       price:
         course.price ?? "0",
@@ -422,9 +382,6 @@ export default function AdminCoursesPage() {
 
         academic_period:
           form.academic_period || null,
-
-        subject:
-          form.subject || null,
 
         price:
           form.price === ""
@@ -780,15 +737,23 @@ export default function AdminCoursesPage() {
                 <div className="mt-4 grid gap-5 md:grid-cols-3">
 
                   <Select
+                    label="Academic Section"
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    options={categories}
+                    placeholder="Select section"
+                    getLabel={(item) => item.name}
+                  />
+
+                  <Select
                     label="Program"
                     name="program"
                     value={form.program}
                     onChange={handleChange}
-                    options={programs}
-                    placeholder="Select program"
-                    getLabel={(item) =>
-                      item.name
-                    }
+                    options={filteredPrograms}
+                    placeholder={form.category ? "Select program" : "Select section first"}
+                    getLabel={(item) => item.name}
                   />
 
                   <Select
@@ -808,26 +773,6 @@ export default function AdminCoursesPage() {
                     }
                     getLabel={(item) =>
                       item.name
-                    }
-                  />
-
-                  <Select
-                    label="Subject"
-                    name="subject"
-                    value={form.subject}
-                    onChange={handleChange}
-                    options={
-                      filteredSubjects
-                    }
-                    placeholder={
-                      form.program
-                        ? "Select subject"
-                        : "Select program first"
-                    }
-                    getLabel={(item) =>
-                      item.code
-                        ? `${item.name} (${item.code})`
-                        : item.name
                     }
                   />
 
@@ -1007,7 +952,7 @@ export default function AdminCoursesPage() {
                   event.target.value
                 )
               }
-              placeholder="Search courses, programs, subjects..."
+              placeholder="Search courses, programs, academic periods..."
               className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
             />
 
@@ -1106,12 +1051,6 @@ export default function AdminCoursesPage() {
                           {course.academic_period_name && (
                             <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
                               {course.academic_period_name}
-                            </span>
-                          )}
-
-                          {course.subject_name && (
-                            <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                              {course.subject_name}
                             </span>
                           )}
 

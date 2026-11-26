@@ -6,7 +6,13 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.conf import settings
+from django.core.mail import send_mail
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.throttling import ScopedRateThrottle
 from django.db.models import Q, Count
+from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
 from rest_framework.views import APIView
@@ -19,8 +25,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsAdminUser
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 from .models import (
 
     Course,
@@ -52,10 +58,14 @@ from .models import (
     UserRequest,
     ContactMessage,
     SocialLink,
+    TeamMember,
+    SiteContent,
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
+    CourseAccessPackage,
 )
+from .access import has_course_access
 from .serializers import (
     UserSerializer,
     UserProfileSerializer,
@@ -308,13 +318,15 @@ class ToggleMaterialProgressAPIView(APIView):
 
         try:
 
-            material = Material.objects.get(pk=material_id)
+            material = Material.objects.select_related("course", "chapter__course").get(pk=material_id)
 
         except Material.DoesNotExist:
 
             return Response({"error": "Material not found"}, status=status.HTTP_404_NOT_FOUND)
 
-
+        course = material.course or (material.chapter.course if material.chapter_id else None)
+        if material.access_type not in ("free", "preview") and not has_course_access(request.user, course):
+            return Response({"error": "You do not have access to this material."}, status=status.HTTP_403_FORBIDDEN)
 
         progress, created = MaterialProgress.objects.get_or_create(
 
@@ -578,28 +590,43 @@ class LoginAPIView(APIView):
         )
 
 class ForgotPasswordAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
     def post(self, request):
-        email = request.data.get("email", "").strip()
+        email = str(request.data.get("email", "")).strip()
         if not email:
             return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response({
-                "success": True,
-                "message": "If an account with this email exists, password reset instructions have been issued."
-            })
+        # Keep the response identical whether or not the account exists.
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+            token_obj = PasswordResetToken.generate_for_user(user)
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token_obj.token}"
+            send_mail(
+                subject="Reset your BTMath password",
+                message=(
+                    f"Hello {user.first_name or user.username},\n\n"
+                    f"Use this link to reset your BTMath password:\n{reset_url}\n\n"
+                    "This link expires in 24 hours. If you did not request this, ignore this email."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
 
-        token_obj = PasswordResetToken.generate_for_user(user)
         return Response({
             "success": True,
-            "message": "Password reset token generated.",
-            "dev_reset_token": token_obj.token,
-            "dev_reset_url": f"/reset-password?token={token_obj.token}"
+            "message": "If an account with this email exists, password reset instructions have been issued."
         })
 
 
 class ResetPasswordAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
+    @transaction.atomic
     def post(self, request):
         token = request.data.get("token", "").strip()
         new_password = request.data.get("new_password", "").strip()
@@ -611,7 +638,7 @@ class ResetPasswordAPIView(APIView):
         if confirm_password and new_password != confirm_password:
             return Response({"error": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
 
-        token_obj = PasswordResetToken.objects.filter(
+        token_obj = PasswordResetToken.objects.select_for_update().filter(
             token=token,
             is_used=False,
             expires_at__gt=timezone.now()
@@ -621,8 +648,16 @@ class ResetPasswordAPIView(APIView):
             return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = token_obj.user
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"error": list(exc.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user.set_password(new_password)
-        user.save()
+        user.save(update_fields=["password"])
 
         token_obj.is_used = True
         token_obj.save(update_fields=["is_used"])
@@ -639,6 +674,7 @@ class MyAccessGroupsAPIView(APIView):
     def get(self, request):
         access_groups = UserAccessGroup.objects.filter(
             user=request.user,
+            access_group__is_active=True,
             is_active=True
         ).select_related("access_group")
 
@@ -660,7 +696,11 @@ class UserPurchasesListAPIView(APIView):
     def get(self, request):
         purchases = Purchase.objects.filter(
             user=request.user,
-            is_active=True
+            is_active=True,
+        ).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        ).filter(
+            Q(course__isnull=False) | Q(access_group__isnull=True) | Q(access_group__is_active=True)
         ).select_related("course", "access_group", "payment")
         serializer = PurchaseSerializer(purchases, many=True)
         return Response({
@@ -687,56 +727,52 @@ class MeAPIView(APIView):
 
 
 class UpdateProfileAPIView(APIView):
+    """Allow an authenticated student to update safe personal profile fields."""
 
     permission_classes = [IsAuthenticated]
-
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-
-
     def put(self, request):
+        from django.utils.dateparse import parse_date
 
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-
-
+        user = request.user
 
         full_name = request.data.get("full_name")
-
         if full_name is not None:
-
+            full_name = str(full_name).strip()
+            if not full_name:
+                return Response({"error": "Full name cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
             profile.full_name = full_name
+            parts = full_name.split(" ", 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ""
 
-            request.user.first_name = full_name
+        if "email" in request.data:
+            email = str(request.data.get("email", "")).strip().lower()
+            if not email:
+                return Response({"error": "Email address is required."}, status=status.HTTP_400_BAD_REQUEST)
+            if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+                return Response({"error": "This email address is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            user.email = email
 
-            request.user.save()
+        for field in ("phone", "bio", "education_level", "address"):
+            if field in request.data:
+                setattr(profile, field, str(request.data.get(field) or "").strip())
 
-
-
-        phone = request.data.get("phone")
-
-        if phone is not None:
-
-            profile.phone = phone
-
-
-
-        bio = request.data.get("bio")
-
-        if bio is not None:
-
-            profile.bio = bio
-
-
+        if "date_of_birth" in request.data:
+            raw_date = request.data.get("date_of_birth")
+            parsed_date = parse_date(str(raw_date)) if raw_date else None
+            if raw_date and not parsed_date:
+                return Response({"error": "Enter a valid date of birth."}, status=status.HTTP_400_BAD_REQUEST)
+            profile.date_of_birth = parsed_date
 
         if "profile_picture" in request.FILES:
-
             profile.profile_picture = request.FILES["profile_picture"]
 
-
-
+        user.save(update_fields=["first_name", "last_name", "email"])
         profile.save()
-
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(user).data)
 
 
 
@@ -891,53 +927,110 @@ class PaymentSubmitAPIView(APIView):
     def post(self, request):
         course_id = request.data.get("course_id")
         access_group_id = request.data.get("access_group_id")
-        amount = request.data.get("amount")
-        payment_method = request.data.get("payment_method")
-        transaction_code = request.data.get("transaction_code", "").strip()
+        payment_method = str(request.data.get("payment_method", "")).strip()
+        transaction_code = str(request.data.get("transaction_code", "")).strip()
         payment_proof = request.FILES.get("payment_proof")
-        note = request.data.get("note", "").strip()
+        note = str(request.data.get("note", "")).strip()
 
-        if not amount or not payment_method:
-            return Response(
-                {"error": "Amount and payment_method are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        valid_methods = {choice[0] for choice in Payment.PAYMENT_METHODS}
+        if payment_method not in valid_methods:
+            return Response({"error": "A valid payment_method is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not course_id and not access_group_id:
+            return Response({"error": "course_id or access_group_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         course = None
         access_group = None
+        expected_amount = None
 
         if course_id:
             try:
-                course = Course.objects.get(pk=course_id)
-                access_group = course.access_group
+                course = Course.objects.select_related("access_group", "program__category").get(
+                    pk=course_id,
+                    is_published=True,
+                )
             except Course.DoesNotExist:
-                return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Published course not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if access_group_id and not access_group:
+            if has_course_access(request.user, course):
+                return Response({"error": "You already have access to this course."}, status=status.HTTP_400_BAD_REQUEST)
+
+            expected_amount = course.discount_price if (
+                course.discount_price and course.discount_price > 0 and course.discount_price < course.price
+            ) else course.price
+            access_group = course.access_group
+            if access_group and not access_group.is_active:
+                return Response(
+                    {"error": "This course's access group is currently unavailable. Please contact BTMath support."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if access_group_id:
             try:
-                access_group = AccessGroup.objects.get(pk=access_group_id)
+                requested_group = AccessGroup.objects.get(pk=access_group_id, is_active=True)
             except AccessGroup.DoesNotExist:
-                return Response({"error": "Access Group not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Active access group not found."}, status=status.HTTP_404_NOT_FOUND)
+            if access_group and access_group.pk != requested_group.pk:
+                return Response({"error": "The selected access group does not match this course."}, status=status.HTTP_400_BAD_REQUEST)
+            access_group = requested_group
+
+        if course is None and access_group is not None:
+            package_levels = [access_group.slug]
+            if access_group.slug == "plus_two":
+                package_levels.append("plus2")
+            elif access_group.slug == "plus2":
+                package_levels.append("plus_two")
+            package_filter = Q(level__iexact=access_group.slug)
+            for alias in package_levels[1:]:
+                package_filter |= Q(level__iexact=alias)
+            package = CourseAccessPackage.objects.filter(package_filter, is_active=True).first()
+            active_group_access = UserAccessGroup.objects.filter(
+                user=request.user,
+                access_group=access_group,
+                is_active=True,
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).exists()
+            if active_group_access:
+                return Response({"error": "You already have access to this access group."}, status=status.HTTP_400_BAD_REQUEST)
+            if not package:
+                return Response(
+                    {"error": "No active price package is configured for this access group."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            expected_amount = package.price
+
+        if expected_amount is None or expected_amount <= 0:
+            return Response({"error": "This item does not have a valid purchase price."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # The browser may send a display amount, but it is never authoritative.
+        submitted_amount = request.data.get("amount")
+        if submitted_amount not in (None, ""):
+            try:
+                if Decimal(str(submitted_amount)) != expected_amount:
+                    return Response(
+                        {"error": "The submitted amount does not match the current price. Refresh checkout and try again."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except Exception:
+                return Response({"error": "Invalid submitted amount."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = Payment.objects.create(
             user=request.user,
             course=course,
             access_group=access_group,
-            amount=Decimal(str(amount)),
+            amount=expected_amount,
             payment_method=payment_method,
             transaction_code=transaction_code,
             payment_proof=payment_proof,
             note=note,
-            status="pending"
+            status="pending",
         )
 
         return Response(
             {
                 "success": True,
                 "message": "Payment submitted successfully. Awaiting administrative verification.",
-                "payment": PaymentSerializer(payment).data
+                "payment": PaymentSerializer(payment).data,
             },
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
 
@@ -971,6 +1064,68 @@ class SocialLinkListAPIView(APIView):
             "success": True,
             "results": serializer.data
         })
+
+
+class SiteContentAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        content, _ = SiteContent.objects.get_or_create(key="main")
+        return Response({
+            field: getattr(content, field)
+            for field in (
+                "about_title", "about_intro", "about_story", "mission", "vision",
+                "values", "contact_email", "contact_phone", "whatsapp_number",
+                "address", "support_hours", "contact_description", "updated_at"
+            )
+        })
+
+
+class TeamMemberListAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        members = TeamMember.objects.filter(is_active=True).order_by("order", "id")
+        return Response({"success": True, "results": [
+            {"id": m.id, "name": m.name, "role": m.role, "bio": m.bio,
+             "image_url": m.image_url, "email": m.email,
+             "linkedin_url": m.linkedin_url, "order": m.order}
+            for m in members
+        ]})
+
+
+class AdminContactReplyAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, pk):
+        contact = get_object_or_404(ContactMessage, pk=pk)
+        reply = str(request.data.get("reply", "")).strip()
+        if not reply:
+            return Response({"detail": "Write a reply before sending."}, status=status.HTTP_400_BAD_REQUEST)
+        if not contact.email:
+            return Response({"detail": "This inquiry has no sender email address."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            sent = send_mail(
+                f"Re: {contact.subject or 'Your inquiry to BTMath'}",
+                f"Hello {contact.name or 'there'},\n\n{reply}\n\nRegards,\nBTMath Support",
+                settings.DEFAULT_FROM_EMAIL,
+                [contact.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            return Response({
+                "detail": "Email could not be sent. Check the backend SMTP configuration.",
+                "error": str(exc),
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if not sent:
+            return Response({"detail": "The email service did not accept the message."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        contact.reply_message = reply
+        contact.is_replied = True
+        contact.is_read = True
+        contact.replied_at = timezone.now()
+        contact.replied_by = request.user
+        contact.save(update_fields=["reply_message", "is_replied", "is_read", "replied_at", "replied_by"])
+        return Response({"success": True, "message": f"Reply emailed to {contact.email}.", "contact_id": contact.id})
 
 
 class RecordSiteVisitAPIView(APIView):
@@ -1030,7 +1185,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1053,21 +1208,20 @@ from .models import (
 from django.shortcuts import get_object_or_404
 
 
+@transaction.atomic
 def process_payment_decision(payment, decision, admin_user, rejection_reason=""):
     """
-    Handles payment approval or rejection:
-    1. Sets status ('approved' or 'rejected')
-    2. Sets verified_by & verified_at
-    3. If approved:
-       - Assigns AccessGroup to student (UserAccessGroup)
-       - Creates/activates Purchase entry
-       - Ensures direct Course Enrollment is active
-       - Falls back to UserSectionAccess for legacy compatibility
-       - Creates AuditLog entry
-    4. If rejected:
-       - Sets rejection_reason
-       - Creates AuditLog entry
+    Apply a payment decision once, while holding a row lock to prevent
+    duplicate approval/rejection side effects under concurrent requests.
     """
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    already_processed = payment.status == decision and payment.verified_at and (
+        decision == "rejected" or Purchase.objects.filter(payment=payment).exists()
+    )
+    if already_processed:
+        return payment
+    if payment.status != "pending" and payment.status != decision:
+        raise ValueError("Only pending payments can be approved or rejected.")
     if decision == "approved":
         payment.status = "approved"
         payment.verified_by = admin_user
@@ -1080,11 +1234,27 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
         if not target_group and payment.course:
             target_group = payment.course.access_group
 
+        if target_group and not target_group.is_active:
+            raise ValueError("The payment's access group is inactive. Activate the group before approving this payment.")
+
         if not target_group and payment.course and payment.course.program and payment.course.program.category:
             level = payment.course.program.category.level
-            target_group = AccessGroup.objects.filter(slug__iexact=level.replace("-", "_")).first()
+            group_slugs = [level]
+            if level == "plus2":
+                group_slugs.append("plus_two")
+            elif level == "plus_two":
+                group_slugs.append("plus2")
+            target_group = AccessGroup.objects.filter(slug__in=group_slugs, is_active=True).first()
             if not target_group:
-                target_group = AccessGroup.objects.filter(name__iexact=level).first()
+                target_group = AccessGroup.objects.filter(name__iexact=level, is_active=True).first()
+
+            # New academic sections use dynamic AccessGroups. Do not silently
+            # approve a section-wide purchase if its entitlement group is missing.
+            if not target_group and level not in VALID_SECTIONS and level != "plus_two":
+                raise ValueError(
+                    f"No active access group is configured for '{level}'. "
+                    f"Create an active access group with slug '{level}' before approving this payment."
+                )
 
         # Provision Access Group
         if target_group:
@@ -1115,14 +1285,14 @@ def process_payment_decision(payment, decision, admin_user, rejection_reason="")
             Enrollment.objects.update_or_create(
                 user=payment.user,
                 course=payment.course,
-                defaults={"status": "active"}
+                defaults={"status": "active", "expiry_date": None}
             )
 
         # Fallback legacy section access
-        try:
+        # Prefer the explicit access group. Keep legacy section grants only
+        # for courses whose category has not yet been configured with a group.
+        if not target_group:
             grant_section_access_from_payment(payment, admin_user)
-        except Exception:
-            pass
 
         # Audit log
         student_id = getattr(getattr(payment.user, "profile", None), "student_id", "")
@@ -1158,17 +1328,35 @@ class AdminDashboardView(APIView):
 
     def get(self, request):
         stats = SiteStatistic.get_stats()
+
+        # Count actual student accounts, excluding staff, superusers, instructors
+        # and admin-role profiles. Profiles are optional for legacy user records.
+        student_users = User.objects.filter(
+            is_staff=False,
+            is_superuser=False,
+        ).filter(
+            Q(profile__isnull=True) | Q(profile__role="student")
+        )
+
+        active_purchases = Purchase.objects.filter(is_active=True).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        ).count()
+
         return Response({
-            "total_students": UserProfile.objects.filter(role="student").count() or User.objects.count(),
+            "total_students": student_users.count(),
             "total_courses": Course.objects.count(),
             "total_programs": Program.objects.count(),
             "pending_payments": Payment.objects.filter(status="pending").count(),
-            "approved_purchases": Purchase.objects.filter(is_active=True).count(),
-            "total_enrollments": Enrollment.objects.count(),
+            "active_purchases": active_purchases,
+            "approved_purchases": active_purchases,
+            "total_enrollments": Enrollment.objects.filter(status="active").count(),
             "total_visitors": stats.total_visitors,
             "total_page_views": stats.total_page_views,
             "total_contact_messages": ContactMessage.objects.count(),
-            "unread_contacts": ContactMessage.objects.filter(is_read=False).count(),
+            "unread_contacts": ContactMessage.objects.filter(
+                is_read=False,
+                is_archived=False,
+            ).count(),
             "pending_requests": UserRequest.objects.filter(status="pending").count(),
             "access_groups": AccessGroup.objects.count(),
         })
@@ -1358,14 +1546,17 @@ class AdminUserManageAccessAPIView(APIView):
 
         if not access_group_id:
             return Response({"error": "access_group_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if action not in ("grant", "revoke"):
+            return Response({"error": "action must be grant or revoke."}, status=status.HTTP_400_BAD_REQUEST)
 
         group = get_object_or_404(AccessGroup, pk=access_group_id)
-
         if action == "grant":
+            if not group.is_active:
+                return Response({"error": "Activate this access group before granting it."}, status=status.HTTP_400_BAD_REQUEST)
             UserAccessGroup.objects.update_or_create(
                 user=user,
                 access_group=group,
-                defaults={"is_active": True, "granted_by": request.user}
+                defaults={"is_active": True, "granted_by": request.user, "expires_at": None}
             )
             AuditLog.objects.create(
                 admin=request.user,
@@ -1392,7 +1583,10 @@ class AdminPaymentApproveAPIView(APIView):
 
     def post(self, request, pk):
         payment = get_object_or_404(Payment, pk=pk)
-        process_payment_decision(payment, "approved", request.user)
+        try:
+            payment = process_payment_decision(payment, "approved", request.user)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             "success": True,
             "message": f"Payment #{payment.id} approved successfully and access granted to student.",
@@ -1406,7 +1600,10 @@ class AdminPaymentRejectAPIView(APIView):
     def post(self, request, pk):
         payment = get_object_or_404(Payment, pk=pk)
         reason = request.data.get("rejection_reason", "").strip() or "Payment could not be verified."
-        process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
+        try:
+            payment = process_payment_decision(payment, "rejected", request.user, rejection_reason=reason)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             "success": True,
             "message": f"Payment #{payment.id} rejected.",
@@ -1427,7 +1624,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1481,7 +1678,7 @@ from rest_framework.permissions import IsAuthenticated
 
 
 
-from .permissions import IsAdminUser
+from .permissions import IsAdminUser, IsSuperAdminUser
 
 from .models import (
 
@@ -1720,10 +1917,36 @@ class AdminResourceAPIView(APIView):
 
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    # Academic structure, curriculum, pricing and public-site content are
+    # controlled by Superadmins. Operational admins retain student, payment
+    # and support workflows.
+    SUPERADMIN_ONLY_RESOURCES = {
+        "categories",
+        "programs",
+        "academic-periods",
+        "academic-units",
+        "subjects",
+        "courses",
+        "chapters",
+        "lessons",
+        "materials",
+        "access-groups",
+        "site-content",
+        "social-links",
+        "team-members",
+    }
 
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        resource = self.kwargs.get("resource")
+        if resource in self.SUPERADMIN_ONLY_RESOURCES:
+            permissions.append(IsSuperAdminUser())
+        return permissions
 
     RESOURCE_MODELS = {
+        "categories": Category,
         "requests": UserRequest,
         "programs": Program,
         "academic-periods": AcademicPeriod,
@@ -1740,6 +1963,8 @@ class AdminResourceAPIView(APIView):
         "user-access-groups": UserAccessGroup,
         "contacts": ContactMessage,
         "social-links": SocialLink,
+        "team-members": TeamMember,
+        "site-content": SiteContent,
         "audit-logs": AuditLog,
     }
 
@@ -1963,31 +2188,31 @@ class AdminResourceAPIView(APIView):
 
                 )
 
+                # Keep a consistent title key for payment admin records.
+                if obj.__class__.__name__ == "Payment":
+                    data["course_title"] = data["course_name"]
+
             except Exception:
 
                 data["course_name"] = None
+                if obj.__class__.__name__ == "Payment":
+                    data["course_title"] = None
 
 
 
         if hasattr(obj, "user_id"):
-
-
-
             try:
-
-                data["user_name"] = (
-
-                    obj.user.get_full_name()
-
-                    or obj.user.username
-
-                )
-
+                related_user = obj.user
+                related_profile = getattr(related_user, "profile", None)
+                data["user_name"] = related_user.get_full_name() or getattr(related_profile, "full_name", "") or related_user.username
+                data["user_username"] = related_user.username
+                data["user_email"] = related_user.email
+                data["student_id"] = getattr(related_profile, "student_id", "") or f"BTM-{related_user.pk:06d}"
             except Exception:
-
                 data["user_name"] = None
-
-
+                data["user_username"] = None
+                data["user_email"] = None
+                data["student_id"] = None
 
         return data
 
@@ -2199,7 +2424,7 @@ class AdminResourceAPIView(APIView):
 
 
 
-        data = request.data.copy()
+        data = {key: request.data.get(key) for key in request.data.keys()}
 
 
 
@@ -2224,6 +2449,8 @@ class AdminResourceAPIView(APIView):
             )
 
 
+
+            self.normalize_model_fields(model, data)
 
             obj = model.objects.create(**data)
 
@@ -2315,11 +2542,14 @@ class AdminResourceAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        data = request.data.copy()
+        data = {key: request.data.get(key) for key in request.data.keys()}
         data.pop("id", None)
+        requested_payment_status = data.pop("status", None) if resource == "payments" else None
 
         try:
             self.prepare_foreign_keys(model, data)
+
+            self.normalize_model_fields(model, data)
 
             for field_name, value in data.items():
                 if field_name == "id":
@@ -2331,16 +2561,17 @@ class AdminResourceAPIView(APIView):
             obj.full_clean()
             obj.save()
 
-            # ========================================================
-            # PAYMENT APPROVAL / REJECTION → PROCESS DECISION
-            # ========================================================
-            if resource == "payments" and obj.status in ("approved", "rejected"):
-                process_payment_decision(
-                    payment=obj,
-                    decision=obj.status,
-                    admin_user=request.user,
-                    rejection_reason=data.get("rejection_reason", ""),
-                )
+            # Payment state changes must go through the transactional service.
+            if resource == "payments" and requested_payment_status:
+                if requested_payment_status in ("approved", "rejected"):
+                    obj = process_payment_decision(
+                        payment=obj,
+                        decision=requested_payment_status,
+                        admin_user=request.user,
+                        rejection_reason=data.get("rejection_reason", ""),
+                    )
+                elif requested_payment_status != obj.status:
+                    raise ValidationError({"status": "Use approved or rejected for a payment decision."})
 
             return Response(self.serialize_object(obj))
 
@@ -2466,11 +2697,35 @@ class AdminResourceAPIView(APIView):
 
 
 
+    def normalize_model_fields(self, model, data):
+        """Convert multipart string values into native Django model field values."""
+        for field in model._meta.concrete_fields:
+            if field.name not in data:
+                continue
+
+            value = data[field.name]
+            if value in ("", None, "null") and (field.null or field.blank):
+                if field.null:
+                    data[field.name] = None
+                continue
+
+            if field.get_internal_type() == "BooleanField" and isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {"true", "1", "yes", "on", "t"}:
+                    data[field.name] = True
+                elif normalized in {"false", "0", "no", "off", "f"}:
+                    data[field.name] = False
+                else:
+                    raise ValidationError({
+                        field.name: "Enter a valid true or false value."
+                    })
+
     def prepare_foreign_keys(self, model, data):
 
 
 
         foreign_keys = {
+            "category": Category,
             "program": Program,
             "academic_period": AcademicPeriod,
             "academic_unit": AcademicPeriod,

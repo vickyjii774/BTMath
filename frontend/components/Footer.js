@@ -10,10 +10,12 @@ import {
   FaInstagram,
 } from "react-icons/fa";
 import { getCounters, recordSiteVisit, getSocialLinks } from "../lib/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
 export default function Footer() {
   const [stats, setStats] = useState(null);
   const [socialLinks, setSocialLinks] = useState([]);
+  const [siteContent, setSiteContent] = useState(null);
 
   useEffect(() => {
     // Record visitor once per browser session
@@ -36,6 +38,8 @@ export default function Footer() {
         else if (Array.isArray(data?.results)) setSocialLinks(data.results);
       })
       .catch(() => {});
+
+    fetch(`${API_URL}/site-content/`).then((response) => response.ok ? response.json() : null).then(setSiteContent).catch(() => {});
   }, []);
 
   function getSocialIcon(platform) {
@@ -215,9 +219,14 @@ export default function Footer() {
               <Link href="/" className="block hover:text-white">
                 Home
               </Link>
+              <Link href="/about" className="block hover:text-white">About BTMath</Link>
+              <Link href="/team" className="block hover:text-white">Our Team</Link>
               <Link href="/contact" className="block hover:text-white">
                 Contact & Inquiries
               </Link>
+              {siteContent?.contact_email && <a href={`mailto:${siteContent.contact_email}`} className="block hover:text-white">{siteContent.contact_email}</a>}
+              {siteContent?.contact_phone && <a href={`tel:${siteContent.contact_phone}`} className="block hover:text-white">{siteContent.contact_phone}</a>}
+              {siteContent?.address && <span className="block text-gray-400">{siteContent.address}</span>}
               <Link href="/login" className="block hover:text-white">
                 Student Login
               </Link>

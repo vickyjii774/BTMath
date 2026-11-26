@@ -13,13 +13,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [admin, setAdmin] = useState(null);
-  const [stats, setStats] = useState({
-    students: 0,
-    courses: 0,
-    enrollments: 0,
-    pending_requests: 0,
-    payments: 0,
-  });
+  const [stats, setStats] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -183,17 +177,15 @@ export default function AdminPage() {
        *   payments: 8
        * }
        */
+      // Keep the dashboard aligned with the protected admin API response.
+      // Null values remain unavailable instead of being shown as misleading zeroes.
       setStats({
-        students: data?.students ?? 0,
-        courses: data?.courses ?? 0,
-        pending_requests: data?.pending_requests ?? 0,
-        enrollments: data?.enrollments ?? 0,
-        payments: data?.payments ?? 0,
-        purchases: data?.purchases ?? 0,
-        pending_payments: data?.pending_payments ?? 0,
-        total_visitors: data?.total_visitors ?? 0,
-        total_page_views: data?.total_page_views ?? 0,
-        unread_contacts: data?.unread_contacts ?? 0,
+        total_visitors: data?.total_visitors ?? null,
+        students: data?.total_students ?? null,
+        courses: data?.total_courses ?? null,
+        purchases: data?.active_purchases ?? data?.approved_purchases ?? null,
+        pending_payments: data?.pending_payments ?? null,
+        unread_contacts: data?.unread_contacts ?? null,
       });
 
     } catch (err) {
@@ -283,43 +275,36 @@ export default function AdminPage() {
         "Approve manual eSewa/bank payments with receipt screenshots.",
       href: "/admin/payments",
       icon: "💳",
-      badge: stats.pending_payments > 0 ? `${stats.pending_payments} Pending` : null,
+      badge: (stats?.pending_payments ?? 0) > 0 ? `${stats.pending_payments} Pending` : null,
     },
     {
       title: "Access Groups",
       description:
-        "Manage access groups (PLUS_TWO, BACHELOR, MASTER, IOE) and course bundles.",
+        "Configure academic access groups and course bundles for each academic section.",
       href: "/admin/access-groups",
       icon: "🔑",
     },
 
     {
-      title: "Courses",
+      title: "Academic Programs",
       description:
-        "Create, edit and publish mathematics courses.",
+        "First, create academic sections, programs and their grades, years, semesters or terms.",
+      href: "/admin/programs",
+      icon: "🎓",
+    },
+    {
+      title: "Course Management",
+      description:
+        "Next, create the mathematics courses, assign each to its academic program and period, and manage pricing and access.",
       href: "/admin/courses",
       icon: "📚",
     },
     {
-      title: "Chapters",
+      title: "Chapter Materials & Notes",
       description:
-        "Create and organize chapters within courses.",
-      href: "/admin/chapters",
-      icon: "🗂️",
-    },
-    {
-      title: "Lessons",
-      description:
-        "Manage video lessons, YouTube lecture URLs and lesson content.",
-      href: "/admin/lessons",
-      icon: "🎥",
-    },
-    {
-      title: "Materials & Notes",
-      description:
-        "Upload PDFs, DOCX, past questions, and formula sheets.",
+        "Finally, open each course to add chapters, video lessons, PDFs, study notes and practice resources.",
       href: "/admin/materials",
-      icon: "📄",
+      icon: "🗂️",
     },
     {
       title: "Contact Inquiries",
@@ -327,20 +312,47 @@ export default function AdminPage() {
         "Review incoming messages and student questions.",
       href: "/admin/contacts",
       icon: "📬",
-      badge: stats.unread_contacts > 0 ? `${stats.unread_contacts} New` : null,
+      badge: (stats?.unread_contacts ?? 0) > 0 ? `${stats.unread_contacts} New` : null,
+    },
+    {
+      title: "About & Contact Details",
+      description: "Edit the public About BTMath page, support email, phone, WhatsApp, address and support hours.",
+      href: "/admin/site-content",
+      icon: "🏢",
+    },
+    {
+      title: "Social Media Links",
+      description: "Add and manage social media profiles displayed on the website.",
+      href: "/admin/social-links",
+      icon: "🔗",
+    },
+    {
+      title: "Our Team",
+      description: "Add educator and team profiles and control which members appear publicly.",
+      href: "/admin/team",
+      icon: "🧑‍🏫",
     },
    
   
-    {
-      title: "Academic Programs",
-      description:
-        "Manage academic programs (+2, BSc, CSIT, BCA, BIM, Master, IOE).",
-      href: "/admin/programs",
-      icon: "🎓",
-    },
-  
-  
   ];
+
+  const isSuperAdmin = admin?.is_superuser === true;
+  const superAdminOnlyPaths = [
+    "/admin/access-groups",
+    "/admin/programs",
+    "/admin/courses",
+    "/admin/materials",
+    "/admin/site-content",
+    "/admin/social-links",
+    "/admin/team",
+  ];
+  const visibleManagementItems = managementItems.filter(
+    (item) => isSuperAdmin || !superAdminOnlyPaths.includes(item.href)
+  );
+  const academicItems = visibleManagementItems.filter((item) =>
+    ["/admin/programs", "/admin/courses", "/admin/materials"].includes(item.href)
+  );
+  const operationsItems = visibleManagementItems.filter((item) => !academicItems.includes(item));
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
@@ -357,8 +369,8 @@ export default function AdminPage() {
               BTMath
             </span>
 
-            <span className="rounded-md bg-black px-2 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              Admin
+            <span className="rounded-md bg-blue-700 px-2 py-1 text-xs font-bold uppercase tracking-wider text-white">
+              {isSuperAdmin ? "Superadmin" : "Admin"}
             </span>
           </Link>
 
@@ -400,9 +412,9 @@ export default function AdminPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-gray-500">
-            Manage users, courses, subjects, materials,
-            requests, enrollments, payments and platform
-            activity.
+            {isSuperAdmin
+              ? "Manage academic sections, programmes, courses, learning materials and platform operations."
+              : "Manage student accounts, verify payments and respond to student support inquiries."}
           </p>
 
         </section>
@@ -411,62 +423,63 @@ export default function AdminPage() {
         <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <StatCard
             title="Total Visitors"
-            value={stats.total_visitors || stats.total_page_views || 0}
+            value={stats?.total_visitors ?? "—"}
             icon="👁️"
           />
 
           <StatCard
             title="Registered Students"
-            value={stats.students}
+            value={stats?.students ?? "—"}
             icon="👥"
           />
 
           <StatCard
             title="Total Courses"
-            value={stats.courses}
+            value={stats?.courses ?? "—"}
             icon="📚"
           />
 
           <StatCard
             title="Active Purchases"
-            value={stats.purchases || stats.enrollments || 0}
+            value={stats?.purchases ?? "—"}
             icon="🛍️"
           />
 
           <StatCard
             title="Pending Payments"
-            value={stats.pending_payments || 0}
+            value={stats?.pending_payments ?? "—"}
             icon="💳"
           />
 
           <StatCard
             title="New Inquiries"
-            value={stats.unread_contacts || 0}
+            value={stats?.unread_contacts ?? "—"}
             icon="📬"
           />
         </section>
 
         {/* Management */}
+        {isSuperAdmin && (
         <section>
           <div className="mb-6">
-            <h2 className="text-xl font-bold">
-              Management & Operations
+            <h2 className="text-xl font-bold text-gray-950">
+              Academic Management
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Control courses, access groups, payments, students, and website resources.
+              Build the academic structure, create courses, and organize every chapter and learning resource.
             </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {managementItems.map((item) => (
+            {academicItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md"
               >
                 <div className="flex items-start justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-xl">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">
                     {item.icon}
                   </span>
 
@@ -476,7 +489,7 @@ export default function AdminPage() {
                         {item.badge}
                       </span>
                     )}
-                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-black">
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-blue-700">
                       →
                     </span>
                   </div>
@@ -490,7 +503,7 @@ export default function AdminPage() {
                   {item.description}
                 </p>
 
-                <div className="mt-5 text-sm font-semibold text-black">
+                <div className="mt-5 text-sm font-semibold text-blue-700">
                   Manage →
                 </div>
 
@@ -499,6 +512,30 @@ export default function AdminPage() {
 
           </div>
 
+        </section>
+        )}
+
+        <section className="mt-12">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold">Platform Operations</h2>
+            <p className="mt-1 text-sm text-gray-500">Manage student accounts, payment verification and incoming support inquiries.</p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {operationsItems.map((item) => (
+              <Link key={item.href} href={item.href} className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md">
+                <div className="flex items-start justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">{item.icon}</span>
+                  <div className="flex items-center gap-2">
+                    {item.badge && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">{item.badge}</span>}
+                    <span className="text-xl text-gray-300 transition group-hover:translate-x-1 group-hover:text-blue-700">→</span>
+                  </div>
+                </div>
+                <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
+                <div className="mt-5 text-sm font-semibold text-blue-700">Manage →</div>
+              </Link>
+            ))}
+          </div>
         </section>
 
       </div>

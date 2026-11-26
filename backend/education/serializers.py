@@ -56,7 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "profile"]
+        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "is_superuser", "profile"]
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -171,6 +171,7 @@ class MaterialSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     materials = serializers.SerializerMethodField()
+    is_locked = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
@@ -183,9 +184,27 @@ class LessonSerializer(serializers.ModelSerializer):
             "video_url",
             "order",
             "is_published",
+            "is_locked",
             "materials",
             "created_at",
         ]
+
+    def _has_access(self, obj):
+        request = self.context.get("request")
+        course = obj.chapter.course if obj.chapter_id else None
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return bool(course and has_course_access(request.user, course))
+
+    def get_is_locked(self, obj):
+        return not self._has_access(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("is_locked"):
+            data["content"] = ""
+            data["video_url"] = ""
+        return data
 
     def get_materials(self, obj):
         materials = obj.materials.filter(is_published=True).order_by("order", "id")
@@ -471,7 +490,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
-            "is_staff",
+            "is_staff", "is_superuser",
             "profile",
         ]
 
@@ -699,38 +718,30 @@ class MaterialSerializer(serializers.ModelSerializer):
 
 class ChapterSerializer(serializers.ModelSerializer):
 
+    lessons = serializers.SerializerMethodField()
     materials = serializers.SerializerMethodField()
 
     class Meta:
         model = Chapter
-
         fields = [
             "id",
             "title",
             "description",
             "order",
+            "is_published",
+            "lessons",
             "materials",
         ]
 
+    def get_lessons(self, obj):
+        lessons = obj.lessons.filter(is_published=True).order_by("order", "id")
+        return LessonSerializer(lessons, many=True, context=self.context).data
+
     def get_materials(self, obj):
-
-        materials = (
-            obj.materials
-            .all()
-            .order_by(
-                "order",
-                "id"
-            )
-        )
-
-        return MaterialSerializer(
-            materials,
-            many=True,
-            context=self.context
-        ).data
+        materials = obj.materials.filter(is_published=True).order_by("order", "id")
+        return MaterialSerializer(materials, many=True, context=self.context).data
 
 
-# =========================================================
 # COURSE LIST SERIALIZER
 # =========================================================
 

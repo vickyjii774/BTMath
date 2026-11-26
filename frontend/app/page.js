@@ -62,9 +62,9 @@ export default async function Home() {
       </section>
 
       {/* REAL DATABASE COUNTERS SECTION */}
-      <section className="border-y border-gray-200 bg-gray-400 py-12 text-white">
+      <section className="border-y border-gray-800 bg-gray-950 py-12 text-white">
         <div className="mx-auto max-w-7xl px-6">
-          <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-300">
             Real Live Learning Metrics (Direct from Database)
           </p>
           <div className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4 lg:gap-8 text-center">

@@ -22,6 +22,8 @@ from .models import (
     LoginLog,
     ContactMessage,
     SocialLink,
+    TeamMember,
+    SiteContent,
     SiteStatistic,
     AuditLog,
     PasswordResetToken,
@@ -363,3 +365,17 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
     list_filter = ("is_used", "created_at")
     search_fields = ("user__username", "user__email", "token")
 
+
+
+@admin.register(TeamMember)
+class TeamMemberAdmin(admin.ModelAdmin):
+    list_display = ("name", "role", "order", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "role", "bio")
+    ordering = ("order", "id")
+
+
+@admin.register(SiteContent)
+class SiteContentAdmin(admin.ModelAdmin):
+    list_display = ("key", "about_title", "contact_email", "updated_at")
+    search_fields = ("key", "about_title", "contact_email")

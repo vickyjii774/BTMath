@@ -121,8 +121,12 @@ export async function apiFetch(endpoint, options = {}) {
   // Create headers
   // ----------------------------------------------------------
 
+  const isFormData =
+    typeof FormData !== "undefined" &&
+    options.body instanceof FormData;
+
   const authHeaders = getAuthHeaders(
-    true,
+    !isFormData,
     !isAuthEndpoint
   );
 
@@ -130,12 +134,6 @@ export async function apiFetch(endpoint, options = {}) {
   // ----------------------------------------------------------
   // Debug request
   // ----------------------------------------------------------
-
-  console.log("=================================");
-  console.log("BTMath API REQUEST:", url);
-  console.log("AUTH ENDPOINT:", isAuthEndpoint);
-  console.log("=================================");
-
 
   try {
 
@@ -163,34 +161,20 @@ export async function apiFetch(endpoint, options = {}) {
     const text = await response.text();
 
 
-    console.log("BTMath API RESPONSE");
-    console.log("URL:", url);
-    console.log("STATUS:", response.status);
-    console.log("STATUS TEXT:", response.statusText);
-    console.log("OK:", response.ok);
-    console.log("BODY:", text);
-
-
     // --------------------------------------------------------
     // Handle API errors
     // --------------------------------------------------------
 
     if (!response.ok) {
 
-      console.error("=================================");
-      console.error("BTMath API ERROR");
-      console.error("URL:", url);
-      console.error("STATUS:", response.status);
-      console.error("STATUS TEXT:", response.statusText);
-      console.error("BODY:", text);
-      console.error("=================================");
-
-
-      throw new Error(
-        `BTMath API ${response.status} ${response.statusText}${
-          text ? ` - ${text}` : ""
-        }`
-      );
+      let message = `Request failed (${response.status}).`;
+      try {
+        const errorData = JSON.parse(text);
+        message = errorData?.error || errorData?.detail || message;
+      } catch {
+        // Do not expose raw server responses in browser errors.
+      }
+      throw new Error(message);
     }
 
 
@@ -216,14 +200,6 @@ export async function apiFetch(endpoint, options = {}) {
 
   } catch (error) {
 
-    console.error("=================================");
-    console.error("BTMath FETCH FAILED");
-    console.error("URL:", url);
-    console.error("ERROR MESSAGE:", error?.message);
-    console.error("ERROR NAME:", error?.name);
-    console.error("ERROR STACK:", error?.stack);
-    console.error("=================================");
-
     throw error;
   }
 }
@@ -234,7 +210,19 @@ export async function apiFetch(endpoint, options = {}) {
 // ============================================================
 
 export async function getCategories() {
-  return apiFetch("/categories/");
+  // Categories are public catalogue data; do not attach a possibly expired
+  // student/admin token to this request.
+  const response = await fetch(`${API_URL}/categories/`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Unable to load academic categories (${response.status}).`);
+  }
+
+  return response.json();
 }
 
 
@@ -294,6 +282,11 @@ export async function getBachelorPrograms() {
 // 9. PLUS TWO COURSES
 // ============================================================
 
+export async function getPlusTwoPrograms() {
+  return apiFetch("/plus-two/");
+}
+
+
 export async function getPlusTwoCourses() {
   return apiFetch("/courses/?level=plus2");
 }
@@ -302,6 +295,11 @@ export async function getPlusTwoCourses() {
 // ============================================================
 // 10. MASTER COURSES
 // ============================================================
+
+export async function getMasterPrograms() {
+  return apiFetch("/master/");
+}
+
 
 export async function getMasterCourses() {
   return apiFetch("/courses/?level=master");
@@ -320,6 +318,11 @@ export async function getIOECourses() {
 // ============================================================
 // 12. SINGLE COURSE
 // ============================================================
+
+export async function getCourseDetail(slug) {
+  return apiFetch(`/courses/${encodeURIComponent(slug)}/`);
+}
+
 
 export async function getCourse(courseId) {
   return apiFetch(`/courses/${courseId}/`);
@@ -380,6 +383,14 @@ export async function getCurrentUser(token) {
 //
 // The JWT is automatically added by apiFetch().
 // ============================================================
+
+export async function submitPayment(formData) {
+  return apiFetch("/payments/submit/", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 
 export async function createPayment(paymentData, token) {
 
@@ -607,6 +618,26 @@ export async function toggleMaterialProgress(materialId) {
 // /auth/refresh/.
 
 
+export async function forgotPassword(email) {
+  return apiFetch("/auth/forgot-password/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+
+export async function resetPassword(token, newPassword) {
+  return apiFetch("/auth/reset-password/", {
+    method: "POST",
+    body: JSON.stringify({
+      token,
+      new_password: newPassword,
+      confirm_password: newPassword,
+    }),
+  });
+}
+
+
 export async function refreshAccessToken(refreshToken) {
 
   return apiFetch("/auth/refresh/", {
@@ -699,6 +730,28 @@ export async function rejectPayment(paymentId, reason = "") {
 
     body: JSON.stringify({
       rejection_reason: reason,
+    }),
+  });
+}
+
+// ============================================================
+// STUDENT PROFILE & SECURITY
+// ============================================================
+
+export async function updateStudentProfile(profileData) {
+  return apiFetch("/auth/profile/", {
+    method: "PUT",
+    body: profileData instanceof FormData ? profileData : JSON.stringify(profileData),
+    headers: profileData instanceof FormData ? {} : undefined,
+  });
+}
+
+export async function changeStudentPassword(oldPassword, newPassword) {
+  return apiFetch("/auth/change-password/", {
+    method: "POST",
+    body: JSON.stringify({
+      old_password: oldPassword,
+      new_password: newPassword,
     }),
   });
 }

@@ -126,12 +126,16 @@ export default function AdminPaymentsPage() {
       if (!query) return true;
 
       const userStr = String(p.username || p.user_username || p.user?.username || p.user || "").toLowerCase();
+      const emailStr = String(p.user_email || p.email || p.user?.email || "").toLowerCase();
+      const studentIdStr = String(p.student_id || "").toLowerCase();
       const codeStr = String(p.transaction_code || "").toLowerCase();
-      const courseStr = String(p.course_title || p.course?.title || p.course || "").toLowerCase();
+      const courseStr = String(p.course_title || p.course_name || p.course?.title || p.course || "").toLowerCase();
       const methodStr = String(p.payment_method || "").toLowerCase();
 
       return (
         userStr.includes(query) ||
+        emailStr.includes(query) ||
+        studentIdStr.includes(query) ||
         codeStr.includes(query) ||
         courseStr.includes(query) ||
         methodStr.includes(query)
@@ -340,14 +344,23 @@ export default function AdminPaymentsPage() {
                             {p.username || p.user_username || p.user?.username || `User #${p.user}`}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {p.email || p.user?.email || "—"}
+                            {p.user_email || p.email || p.user?.email || "—"}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] text-blue-700">
+                            Student ID: {p.student_id || (p.user ? "BTM-" + String(p.user).padStart(6, "0") : "Unavailable")}
+                          </p>
+                          <p className="font-mono text-[11px] text-gray-500">
+                            Payment ID: #{p.id}
                           </p>
                         </td>
 
                         {/* Course */}
                         <td className="px-6 py-4">
                           <p className="font-semibold text-gray-900">
-                            {p.course_title || p.course?.title || `Course #${p.course}`}
+                            {p.course_title || p.course_name || p.course?.title || (p.course ? `Course #${p.course}` : "Course not specified")}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] text-gray-500">
+                            Course ID: {p.course?.id || p.course || "Unavailable"}
                           </p>
                           <p className="text-xs text-gray-500">
                             {new Date(p.created_at).toLocaleString()}
@@ -364,8 +377,9 @@ export default function AdminPaymentsPage() {
                           <span className="font-bold uppercase text-gray-700">
                             {p.payment_method || "Direct"}
                           </span>
-                          <div className="mt-0.5 font-mono text-xs text-blue-700">
-                            {p.transaction_code ? `Ref: ${p.transaction_code}` : "No Code"}
+                          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Transaction / Reference Code</div>
+                          <div className="mt-0.5 break-all font-mono text-xs text-blue-700">
+                            {p.transaction_code || "No Code Provided"}
                           </div>
                         </td>
 
